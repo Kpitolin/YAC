@@ -1,9 +1,5 @@
 import nltk, unittest, re, os
 
-
-# execute nltk.download() to download corpora before executing that function
-
-
 class TextFile:
 	"""
 	A class representing a textfile as formatted in LATimes corpus
@@ -27,26 +23,42 @@ class TextFile:
 			return text_file.write(stringContent)
 
 	def tokenizeTextFileByDocNltk(self):
-		""" Extracts the words out of a text document
-			Creates an hashmap <docId, listOfWords> for each document 
+		""" Extracts the words out of a text file
 		"""
 
 		with open(self.filepath,'r') as raw_text:
 			return TextFile.tokenizeStringByDocNltk(raw_text)
 
+		return {}
 
+	# execute nltk.download() to download corpora before executing that function
 	@staticmethod
-	def tokenizeStringByDocNltk(raw_text):
+	def tokenizeStringByDocNltk(text, without_tags=False):
 		""" Extracts the words out of a string
 			Creates an hashmap <docId, listOfWords> for each document 
+			See http://www.nltk.org/howto/tokenize.html for more details on nltk.tokenize
 		"""
-
 		dictionnary_doc_words = {}
 		doc_word_list = []
 		doc_id = ''
-		for line in raw_text:
+		lines = ""
+
+		#textfile
+		if hasattr(text, 'readlines'):
+			lines = text
+		#multi-line string 
+		elif isinstance(text,str):
+			lines = text.splitlines(False)
+
+		for line in lines:
 			#extract the tokens out of the raw text
-			tokens = nltk.word_tokenize(line)
+			if without_tags:
+				tokens = TextFile.filterTags(line)
+				tokens = nltk.word_tokenize(tokens)
+			else:
+				tokens = nltk.word_tokenize(line)
+
+
 			doc_word_list += tokens
 			pattern_doc_id = r"<DOCID>\s(\d)+\s</DOCID>"
 			pattern_doc_end = r"</DOC>"
@@ -64,12 +76,23 @@ class TextFile:
 
 		return dictionnary_doc_words
 
+	@staticmethod
+	def filterTags(string):
+		"""Returns a string without tags"""
+	
+		doc = nltk.regexp_tokenize(string, r"</?[\w]+>", gaps=True)
+		doc = list(map(lambda item: re.sub(r"(\n|\t)", "", item), doc))
+		doc = list(filter(lambda item: item != "", doc))
+		doc = "".join(doc)
+
+		return doc
 
 	@classmethod
 	def new_file(cls,filepath):
 		file = open(filepath,'w')
 		file.close()
 		return cls(filepath)
+
 
 
 
@@ -85,10 +108,44 @@ class TokenizationTestCase(unittest.TestCase):
 		with self.assertRaises(IOError):
 			self.textFileNF.tokenizeTextFileByDocNltk()
 
+	def test_filterTags_empty(self):
+		self.assertEqual(TextFile.filterTags(""), "")
+
+	def test_filterTags_normal(self):
+		stringNormalOneDoc = """<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+		self.assertEqual(TextFile.filterTags(stringNormalOneDoc), " 1 The onset of the new Gorbachev")
+
+	def test_filterTags_no_break_lines(self):
+
+		stringNormalOneDoc = ("<DOC>"
+		"<DOCID> 1 </DOCID>"
+		"The onset of the new Gorbachev"
+		"</DOC>")
+		self.assertEqual(TextFile.filterTags(stringNormalOneDoc), " 1 The onset of the new Gorbachev")
+
 	def test_tokenize_file_empty(self):
 		self.assertEqual(self.emptyFile.tokenizeTextFileByDocNltk(),{})
 
-	def test_tokenize_one_document_normal(self):
+	def test_tokenize_one_document_string_normal_no_special_characters(self):
+		stringNormalOneDoc = """<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+		self.assertEqual(TextFile.tokenizeStringByDocNltk(stringNormalOneDoc),{1: ['<', 'DOC', '>', '<', 'DOCID', '>', '1', '<', '/DOCID', '>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '<', '/DOC', '>']})
+
+	def test_tokenize_one_document_string_normal_no_special_characters_without_tags(self):
+		stringNormalOneDoc = """<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+		self.assertEqual(TextFile.tokenizeStringByDocNltk(stringNormalOneDoc,True),{1: ['1','The', 'onset', 'of', 'the', 'new', 'Gorbachev']})
+
+
+
+	def test_tokenize_one_document_file_normal_no_special_characters(self):
 		stringNormalOneDoc = """<DOC>
 		<DOCID> 1 </DOCID>
 		The onset of the new Gorbachev
@@ -114,6 +171,8 @@ class TokenizationTestCase(unittest.TestCase):
 
 	def tearDown(self):
 		self.emptyFile.deleteFile()
+
+
 
 if __name__=='__main__':
 	unittest.main()
