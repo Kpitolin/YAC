@@ -23,11 +23,20 @@ class TextFile:
 			return text_file.write(stringContent)
 
 	def tokenizeTextFileByDocNltk(self,without_tags=False):
-		""" Extracts the words out of a text file
+		""" Extracts the words out of a text file with NLTK word_tokenize method
 		"""
 
 		with open(self.filepath,'r') as raw_text:
 			return TextFile.tokenizeStringByDocNltk(raw_text,without_tags)
+
+		return {}
+
+	def tokenizeTextFileByDocSplit(self,without_tags=False):
+		""" Extracts the words out of a text file with split method
+		"""
+
+		with open(self.filepath,'r') as raw_text:
+			return TextFile.tokenizeStringByDocSplit(raw_text,without_tags)
 
 		return {}
 
@@ -65,8 +74,48 @@ class TextFile:
 		for line in lines:
 
 			#extract the tokens out of the raw text
-			#replace word_tokenize with re.split see https://docs.python.org/2/library/re.html#re.split
 			tokens = nltk.word_tokenize(TextFile.filterTags(line)) if without_tags else nltk.word_tokenize(line)
+			doc_word_list += tokens
+			pattern_doc_id = r"<DOCID>\s(\d+)\s</DOCID>"
+			pattern_doc_end = r"</DOC>"
+
+			match = re.search(pattern_doc_id, line)
+			if match:
+				#extract the docid from the line : the first group in the regex (what's between parenthesis)
+				doc_id = int(match.group(1))
+
+			elif re.search(pattern_doc_end, line) and doc_word_list != [] and doc_id != '':
+				#if we reached the end of the document, insert tokens in hashmap and flush variables
+				dictionnary_doc_words[doc_id] = doc_word_list
+				doc_word_list = []
+				del doc_id
+
+		return dictionnary_doc_words
+
+	@staticmethod
+	def tokenizeStringByDocSplit(text, without_tags=False):
+		""" Extracts the words out of a string
+			Creates an hashmap <docId, listOfWords> for each document 
+			See https://docs.python.org/2/library/re.html#re.split for more details on re.split
+		"""
+		dictionnary_doc_words = {}
+		doc_word_list = []
+		doc_id = ''
+		lines = []
+
+		#textfile
+		if hasattr(text, 'readlines'):
+			lines = text
+			#multi-line string 
+		elif isinstance(text,str):
+			lines = text.splitlines(False)
+
+		for line in lines:
+
+			#extract the tokens out of the raw text
+			pattern_split = r'\s+'
+			tokens = re.split(pattern_split,TextFile.filterTags(line)) if without_tags else re.split(pattern_split, line)
+			tokens = list(filter(lambda item: item != "", tokens))
 			doc_word_list += tokens
 			pattern_doc_id = r"<DOCID>\s(\d+)\s</DOCID>"
 			pattern_doc_end = r"</DOC>"
