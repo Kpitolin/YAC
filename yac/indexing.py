@@ -17,12 +17,14 @@ def createIndex(filePathFormat):
 		doc_id = ''
 		doc = ''
 		for line in lines:
+			doc += line
 			match = re.search(pattern_doc_id, line)
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
 			elif re.search(pattern_doc_end, line) and doc != '' and doc_id != '':
 				#if we reached the end of the document, insert tokens in hashmap and flush variables
+				
 				words = tokenization.TextFile.tokenizeStringSplit(doc)
 				score = 1.0/len(words)
 				for word in words:
@@ -34,6 +36,7 @@ def createIndex(filePathFormat):
 						ii[word][doc_id] += score
 				doc = ''
 				del doc_id
+				
 	return ii
 	
 
