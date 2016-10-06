@@ -8,8 +8,14 @@ invertedFile = { "and": {"1":1}, "aquarium": {"3":1}, "are":{"3":1, "4":1},
 "fishkeepers": {"2":1},"found": {"1":1},"fresh": {"2":1}, "freshwater": {"1":1, "4":1},
 "from": {"4":1} }
 
- #Token recherche
+ #Token recherche disjonctive ("OU")
+
 query = "and as both"
+
+def sortAndPrintDict(dict):
+    sortedDict = sorted(dict, key=dict.__getitem__, reverse=True)
+    for doc in sortedDict :
+		print(doc+ ":" + str(dict[doc]))
 
 def findDocsSortedByScore(invertedFile, query):
 	queryList = query.split()
@@ -20,10 +26,36 @@ def findDocsSortedByScore(invertedFile, query):
 				request[doc] += invertedFile[word][doc]
 			else:
 				request[doc] = invertedFile[word][doc]
+	sortAndPrintDict(request)
 
-	sortedRequest = sorted(request, key=request.__getitem__, reverse=True)
+print "Resutat recherche disjonctive:"
+findDocsSortedByScore(invertedFile, query)
 
-	for doc in sortedRequest :
-		print(doc+ ":" + str(request[doc]))	
+#Token recherche conjonctive ("ET")
+print "\nRecherche conjontive:"
 
-findDocsSortedByScore(invertedFile, query) 	
+query = "are fish freshwater"
+
+def findDocsSortedByScoreConj(invertedFile,query):
+    queryList = query.split()
+    postingLists = []
+    #On recupere les PL de chaque terme
+    for word in queryList :
+        postingLists += [invertedFile[word]]
+    last = postingLists.pop()
+    request = {}
+
+    for doc in last : #Boucle sur les clefs dans results
+        doc_score = last[doc]
+        for PL in postingLists :
+            if PL.has_key(doc) :
+                doc_score += PL[doc]
+            else :
+                doc_score = 0
+                break
+        if doc_score != 0 :
+            request[doc] = doc_score
+
+    sortAndPrintDict(request)
+
+findDocsSortedByScoreConj(invertedFile,query)
