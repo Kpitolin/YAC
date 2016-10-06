@@ -100,7 +100,6 @@ class TokenizationTestCase(unittest.TestCase):
 	#	self.assertEqual(tokenization.TextFile.tokenizeStringByDocNltk('emptyFile'),{"":""})
 
 	#Tokenize test cases (Split)
-
 	def test_tokenize_split_two_documents_string_normal_no_special_characters(self):
 		stringNormalOneDoc = """<DOC>
 		<DOCID> 1 </DOCID>
