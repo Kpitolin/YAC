@@ -100,7 +100,6 @@ class TokenizationTestCase(unittest.TestCase):
 	#	self.assertEqual(tokenization.TextFile.tokenizeStringByDocNltk('emptyFile'),{"":""})
 
 	#Tokenize test cases (Split)
-
 	def test_tokenize_split_two_documents_string_normal_no_special_characters(self):
 		stringNormalOneDoc = """<DOC>
 		<DOCID> 1 </DOCID>
@@ -111,6 +110,17 @@ class TokenizationTestCase(unittest.TestCase):
 		The onset of the new Gorbachev
 		</DOC>"""
 		self.assertEqual(tokenization.TextFile.tokenizeStringByDocSplit(stringNormalOneDoc),{1: ['<DOC>', '<DOCID>', '1', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>'], 2: ['<DOC>', '<DOCID>', '2', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>']})
+
+
+
+	def test_tokenize_string_split_one_doc(self):
+
+		stringNormalOneDoc = """<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>
+		"""
+		self.assertEqual(tokenization.TextFile.tokenizeStringSplit(stringNormalOneDoc), ['<DOC>', '<DOCID>', '1', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>'])
 
 
 	def tearDown(self):

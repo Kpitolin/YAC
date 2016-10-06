@@ -1,4 +1,55 @@
 import nltk, re, os
+from os import listdir
+from os.path import isfile, join
+
+class TextFileList:
+	"""
+	A class representing a list of textfiles as formatted in LATimes corpus
+
+	Usage for tokenization of all files in folderpath:
+
+	testFileList = TextFileList.fileListFromPath("folderpath")
+	print(testFileList.tokenizeTextFilesByDocSplit())
+	"""
+
+	def __init__(self, listOfFileNames):
+		self.listOfFileNames = listOfFileNames
+
+
+	def tokenizeTextFilesByDocNltk(self, without_tags=False):
+			""" Extracts the words out of text files with NLTK word_tokenize method
+			"""
+
+			dictionnary_doc_words = {}
+
+			for filepath in self.listOfFileNames:
+				with open(filepath,'r') as raw_text:
+					dictionnary_doc_words = TextFile.tokenizeStringByDocNltk(raw_text,without_tags, dictionnary_doc_words)
+
+			return dictionnary_doc_words
+
+	def tokenizeTextFilesByDocSplit(self, without_tags=False):
+			""" Extracts the words out of text files with split method
+			"""
+			dictionnary_doc_words = {}
+
+			for filepath in self.listOfFileNames:
+				with open(filepath,'r') as raw_text:
+					dictionnary_doc_words = TextFile.tokenizeStringByDocSplit(raw_text,without_tags, dictionnary_doc_words)
+
+			return dictionnary_doc_words
+
+	@classmethod
+	def fileListFromPath(cls,folderpath):
+		"""http://stackoverflow.com/a/3207973
+			Creates a TextFileList instance from a folderpath
+			It enumerates the files in that folder (non-recursive)
+		"""
+
+		pattern_file_title =  r"la\d+"
+
+		files = [join(folderpath, f) for f in listdir(folderpath) if isfile(join(folderpath, f)) and re.match(pattern_file_title, f)]
+		return cls(files)
 
 class TextFile:
 	"""
@@ -31,14 +82,17 @@ class TextFile:
 
 		return {}
 
+
+
 	def tokenizeTextFileByDocSplit(self,without_tags=False):
 		""" Extracts the words out of a text file with split method
 		"""
-
 		with open(self.filepath,'r') as raw_text:
 			return TextFile.tokenizeStringByDocSplit(raw_text,without_tags)
 
 		return {}
+
+	
 
 	@staticmethod
 	def filterTags(string):
@@ -54,12 +108,11 @@ class TextFile:
 
 	# execute nltk.download() to download corpora before executing that function
 	@staticmethod
-	def tokenizeStringByDocNltk(text, without_tags=False):
+	def tokenizeStringByDocNltk(text, without_tags=False, dictionnary_doc_words = {}):
 		""" Extracts the words out of a string
 			Creates an hashmap <docId, listOfWords> for each document 
 			See http://www.nltk.org/howto/tokenize.html for more details on nltk.tokenize
 		"""
-		dictionnary_doc_words = {}
 		doc_word_list = []
 		doc_id = ''
 		lines = []
@@ -93,12 +146,22 @@ class TextFile:
 		return dictionnary_doc_words
 
 	@staticmethod
-	def tokenizeStringByDocSplit(text, without_tags=False):
+	def tokenizeStringSplit(text, without_tags=False):
+		tokens = []
+		
+		#extract the tokens out of the raw text
+		pattern_split = r'\s+'
+		tokens = re.split(pattern_split,TextFile.filterTags(text)) if without_tags else re.split(pattern_split, text)
+		tokens = list(filter(lambda item: item != "", tokens))
+
+		return tokens
+
+	@staticmethod
+	def tokenizeStringByDocSplit(text, without_tags=False, dictionnary_doc_words = {}):
 		""" Extracts the words out of a string
 			Creates an hashmap <docId, listOfWords> for each document 
 			See https://docs.python.org/2/library/re.html#re.split for more details on re.split
 		"""
-		dictionnary_doc_words = {}
 		doc_word_list = []
 		doc_id = ''
 		lines = []
@@ -106,7 +169,7 @@ class TextFile:
 		#textfile
 		if hasattr(text, 'readlines'):
 			lines = text
-			#multi-line string 
+		#multi-line string 
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
 
