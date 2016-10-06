@@ -84,7 +84,7 @@ class TextFile:
 
 
 
-	def tokenizeTextFilesByDocSplit(self,without_tags=False):
+	def tokenizeTextFileByDocSplit(self,without_tags=False):
 		""" Extracts the words out of a text file with split method
 		"""
 		with open(self.filepath,'r') as raw_text:
@@ -146,6 +146,17 @@ class TextFile:
 		return dictionnary_doc_words
 
 	@staticmethod
+	def tokenizeStringSplit(text, without_tags=False):
+		tokens = []
+		
+		#extract the tokens out of the raw text
+		pattern_split = r'\s+'
+		tokens = re.split(pattern_split,TextFile.filterTags(text)) if without_tags else re.split(pattern_split, text)
+		tokens = list(filter(lambda item: item != "", tokens))
+
+		return tokens
+
+	@staticmethod
 	def tokenizeStringByDocSplit(text, without_tags=False, dictionnary_doc_words = {}):
 		""" Extracts the words out of a string
 			Creates an hashmap <docId, listOfWords> for each document 
@@ -158,7 +169,7 @@ class TextFile:
 		#textfile
 		if hasattr(text, 'readlines'):
 			lines = text
-			#multi-line string 
+		#multi-line string 
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
 
