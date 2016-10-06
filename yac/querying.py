@@ -1,5 +1,7 @@
 """ this file define a mock of an inverted file and a simple querying algorithm """
 
+from sys import argv
+
 #inverted file
 invertedFile = { "and": {"1":1}, "aquarium": {"3":1}, "are":{"3":1, "4":1},
 "around": {"1":1}, "as": {"2":1},"both": {"1":1},
@@ -8,9 +10,12 @@ invertedFile = { "and": {"1":1}, "aquarium": {"3":1}, "are":{"3":1, "4":1},
 "fishkeepers": {"2":1},"found": {"1":1},"fresh": {"2":1}, "freshwater": {"1":1, "4":1},
 "from": {"4":1} }
 
- #Token recherche disjonctive ("OU")
 
-query = "and as both"
+ #Prompt for query terms
+query = raw_input("Entrez votre recherche disjonctive: ")
+
+
+ #Token recherche disjonctive ("OU")
 
 def sortAndPrintDict(dict):
     sortedDict = sorted(dict, key=dict.__getitem__, reverse=True)
@@ -32,9 +37,12 @@ print "Resutat recherche disjonctive:"
 findDocsSortedByScore(invertedFile, query)
 
 #Token recherche conjonctive ("ET")
-print "\nRecherche conjontive:"
+query = raw_input("Entrez votre recherche disjonctive: ")
 
-query = "are fish freshwater"
+def popSmallestDict(dictList):
+    smallest = min(dictList)
+    dictList.remove(smallest)
+    return smallest
 
 def findDocsSortedByScoreConj(invertedFile,query):
     queryList = query.split()
