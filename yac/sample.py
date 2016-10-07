@@ -11,8 +11,16 @@ start = time.clock()
 """testFileList = tokenization.TextFileList.fileListFromPath("folderPath") # '../../../../Downloads/latimes'
 print(len(testFileList.tokenizeTextFilesByDocSplit()))"""
 
-ii = indexing.createIndex("../../latimes/la010189")
-print(ii)
+stringNormalOneDoc = """
+		<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+#a = indexing.Index().createIndexFromText(stringNormalOneDoc)
+
+
+iindex = indexing.Index("../../../../Downloads/latimes/la010189").createIndexFromFileFormat()
+print(len(iindex))
 
 end = time.clock()
 print(end - start)
