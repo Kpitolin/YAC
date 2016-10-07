@@ -1,6 +1,16 @@
-import nltk, re, os
+import nltk, re, os, string
 from os import listdir
 from os.path import isfile, join
+
+
+def filterPunctuation(text):
+
+	CHARACTERS_TO_KEEP = "-<>/"
+	characters_to_remove = string.punctuation
+	for ch in CHARACTERS_TO_KEEP:
+		characters_to_remove = characters_to_remove.replace(ch,"")
+	pattern = r"[{}]".format(characters_to_remove)
+	return str(re.sub(pattern,"",text))
 
 class TextFileList:
 	"""
@@ -126,6 +136,7 @@ class TextFile:
 
 		for line in lines:
 
+			line = filterPunctuation(line)
 			#extract the tokens out of the raw text
 			tokens = nltk.word_tokenize(TextFile.filterTags(line)) if without_tags else nltk.word_tokenize(line)
 			doc_word_list += tokens
@@ -151,6 +162,7 @@ class TextFile:
 		
 		#extract the tokens out of the raw text
 		pattern_split = r'\s+'
+		text = filterPunctuation(text)
 		tokens = re.split(pattern_split,TextFile.filterTags(text)) if without_tags else re.split(pattern_split, text)
 		tokens = list(filter(lambda item: item != "", tokens))
 
@@ -175,6 +187,7 @@ class TextFile:
 
 		for line in lines:
 
+			line = filterPunctuation(line)
 			#extract the tokens out of the raw text
 			pattern_split = r'\s+'
 			tokens = re.split(pattern_split,TextFile.filterTags(line)) if without_tags else re.split(pattern_split, line)

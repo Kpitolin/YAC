@@ -111,9 +111,20 @@ class TokenizationTestCase(unittest.TestCase):
 		</DOC>"""
 		self.assertEqual(tokenization.TextFile.tokenizeStringByDocSplit(stringNormalOneDoc),{1: ['<DOC>', '<DOCID>', '1', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>'], 2: ['<DOC>', '<DOCID>', '2', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>']})
 
+	def test_tokenize_split_two_documents_string_normal_special_characters(self):
+		stringNormalOneDoc = """<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of "the new Gorbachev".
+		</DOC>
+		<DOC>
+		<DOCID> 2 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+		self.assertEqual(tokenization.TextFile.tokenizeStringByDocSplit(stringNormalOneDoc),{1: ['<DOC>', '<DOCID>', '1', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>'], 2: ['<DOC>', '<DOCID>', '2', '</DOCID>', 'The', 'onset', 'of', 'the', 'new', 'Gorbachev', '</DOC>']})
 
 
-	def test_tokenize_string_split_one_doc(self):
+
+	def test_tokenize_string_split_one_doc_no_special_characters(self):
 
 		stringNormalOneDoc = """<DOC>
 		<DOCID> 1 </DOCID>
