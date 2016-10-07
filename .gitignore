@@ -1,3 +1,5 @@
+#Ignore .Rhistory files
+.Rhistory
 # Ignore Mac DS_Store files
 .DS_Store
 #Ignore bytecode Python files
