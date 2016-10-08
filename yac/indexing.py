@@ -9,6 +9,12 @@ PATTERN_DOC_END = r"</DOC>"
 
 
 class Index:
+	""" Example of inv_index : 
+	 { "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}
+	 The inner dictionnary is structured that way : {doc_id:score} both are int for now
+	"""
+	doc_id_list = []
+
 	def __init__(self, filePathFormat = ""):
 		self.filePathFormat = filePathFormat
 		self.inv_index = {}
@@ -59,6 +65,7 @@ class Index:
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
+				self.doc_id_list.append(doc_id)
 			elif re.search(PATTERN_DOC_END, line) and doc != '' and doc_id != '':
 				#if we reached the end of the document, insert tokens in hashmap and flush variables
 				
@@ -81,6 +88,11 @@ class Index:
 		return self.inv_index
 
 
+	#Replaces the temporary score by the tf idf in each item of the index dictionnary
+	def  calculate_all_scores_memory(self):
 
+	    for term,term_plist in self.inv_index.iteritems():
+	    	for doc_id in self.inv_index[term]:
+	    		self.inv_index[term][doc_id] *= inverse_document_frequency(len(term_plist), len(self.doc_id_list))
 	
 
