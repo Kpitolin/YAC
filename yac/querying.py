@@ -1,5 +1,5 @@
 """ this file define a mock of an inverted file and a simple querying algorithm """
-
+import indexing, tokenization
 from sys import argv
 
 #inverted file
@@ -10,34 +10,24 @@ invertedFile = { "and": {"1":1}, "aquarium": {"3":1}, "are":{"3":1, "4":1},
 "fishkeepers": {"2":1},"found": {"1":1},"fresh": {"2":1}, "freshwater": {"1":1, "4":1},
 "from": {"4":1} }
 
-
- #Prompt for query terms
-query = raw_input("Entrez votre recherche disjonctive: ")
-
-
  #Token recherche disjonctive ("OU")
 
 def sortAndPrintDict(dict):
     sortedDict = sorted(dict, key=dict.__getitem__, reverse=True)
     for doc in sortedDict :
-		print(doc+ ":" + str(dict[doc]))
+		print("{0} : {1}".format(doc,str(dict[doc])))
 
 def findDocsSortedByScore(invertedFile, query):
 	queryList = query.split()
 	request = {}
-	for word in queryList :
-		for doc in invertedFile[word] :
-			if(doc in request):
-				request[doc] += invertedFile[word][doc]
-			else:
-				request[doc] = invertedFile[word][doc]
+	for word in queryList:
+		if word in invertedFile:
+        		for doc in invertedFile[word]:
+        			if(doc in request):
+        				request[doc] += invertedFile[word][doc]
+        			else:
+        				request[doc] = invertedFile[word][doc]
 	sortAndPrintDict(request)
-
-print "Resutat recherche disjonctive:"
-findDocsSortedByScore(invertedFile, query)
-
-#Token recherche conjonctive ("ET")
-query = raw_input("Entrez votre recherche disjonctive: ")
 
 def popSmallestDict(dictList):
     smallest = min(dictList)
@@ -66,4 +56,15 @@ def findDocsSortedByScoreConj(invertedFile,query):
 
     sortAndPrintDict(request)
 
-findDocsSortedByScoreConj(invertedFile,query)
+if __name__=='__main__':
+    #Prompt for query terms
+    #Here specify the location of the textfiles to search upon
+    index = indexing.Index("../../../../Downloads/latimes/la010189")
+    index.createIndexFromFileFormat()
+    index.calculate_all_scores_memory()
+    query = raw_input("Entrez votre recherche disjonctive: ")
+    print "Resutat recherche disjonctive:"
+    findDocsSortedByScore(index.inv_index, query)
+    #Token recherche conjonctive ("ET")
+    #query = raw_input("Entrez votre recherche disjonctive: ")
+    #findDocsSortedByScoreConj(invertedFile,query)

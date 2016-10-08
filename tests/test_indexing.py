@@ -59,6 +59,22 @@ class TokenizationTestCase(unittest.TestCase):
 		self.assertEqual(index.inv_index, {"<DOCID>":{1:0}, "</DOCID>":{1:0},  "<DOC>":{1:0}, "</DOC>": {1:0},"1": {1:0}, "The": {1:0}, "onset": {1:0}, "of":{1:0}, "the":{1:0}, "new":{1:0},"Gorbachev":{1:0}})
 	
 
+	def test_calculate_terms_in_query_scores_memory_one_doc(self):
+		stringNormalOneDoc = """
+		<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of the new Gorbachev
+		</DOC>"""
+
+		query = "the new Gorbachev"
+
+		index = indexing.Index()
+		index.doc_id_list = [1]
+		index.inv_index = {"<DOCID>":{1:1.0/11}, "</DOCID>":{1:1.0/11},  "<DOC>":{1:1.0/11}, "</DOC>": {1:1.0/11},"1": {1:1.0/11}, "The": {1:1.0/11}, "onset": {1:1.0/11}, "of":{1:1.0/11}, "the":{1:1.0/11}, "new":{1:1.0/11},"Gorbachev":{1:1.0/11}}
+		index.calculate_terms_in_query_scores_memory(query)
+		self.assertEqual(index.inv_index, {"<DOCID>":{1:1.0/11}, "</DOCID>":{1:1.0/11},  "<DOC>":{1:1.0/11}, "</DOC>": {1:1.0/11},"1": {1:1.0/11}, "The": {1:1.0/11}, "onset": {1:1.0/11}, "of":{1:1.0/11}, "the":{1:0}, "new":{1:0},"Gorbachev":{1:0}})
+	
+
 	def test_calculate_all_scores_memory_two_doc(self):
 		stringNormalDoc = """
 		<DOC>

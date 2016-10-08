@@ -97,3 +97,17 @@ class Index:
 	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
 	
 
+	#Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
+	def  calculate_terms_in_query_scores_memory(self, query):
+
+		for term in score.getTerms(query):
+			#print list(self.inv_index.iteritems())
+			print("Term query {}".format(term))
+
+			if term in self.inv_index:
+				print("Term in plist {}".format(term))
+				term_plist = self.inv_index[term]
+				for doc_id in term_plist:
+					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
+	
+

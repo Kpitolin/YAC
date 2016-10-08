@@ -9,11 +9,14 @@ from nltk.stem.porter import PorterStemmer
 from blist import sorteddict
 porter_stemmer = PorterStemmer()
 
-def getTerms(query, with_stemming = False):
+def getTerms(query, remove_stopwords = False , case_sensitive = True , with_stemming = False):
     stop_words=stopwords.words('english')
-    query=query.lower()
-    query=re.sub(r"[^a-z0-9 ]",' ',query)
-    words=[x for x in query.split() if x not in stop_words]
+
+    if not case_sensitive:
+        query=query.lower()
+    query=re.sub(r"[^a-zA-Z0-9 ]",' ',query)
+    words=[x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
+    terms=[]
     if with_stemming:
         terms=[porter_stemmer.stem(word) for word in words]
     else:
