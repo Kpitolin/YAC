@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import sys
 import re
 import math
@@ -7,12 +9,15 @@ from nltk.stem.porter import PorterStemmer
 from blist import sorteddict
 porter_stemmer = PorterStemmer()
 
-def getTerms(query):
+def getTerms(query, with_stemming = False):
     stop_words=stopwords.words('english')
     query=query.lower()
     query=re.sub(r"[^a-z0-9 ]",' ',query)
     words=[x for x in query.split() if x not in stop_words]
-    terms=[porter_stemmer.stem(word) for word in words]
+    if with_stemming:
+        terms=[porter_stemmer.stem(word) for word in words]
+    else:
+        terms=words
     return terms
 
 

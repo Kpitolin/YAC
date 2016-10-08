@@ -3,6 +3,7 @@
 import glob
 import re
 import tokenization
+import score
 
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
 PATTERN_DOC_END = r"</DOC>"
@@ -93,6 +94,6 @@ class Index:
 
 	    for term,term_plist in self.inv_index.iteritems():
 	    	for doc_id in self.inv_index[term]:
-	    		self.inv_index[term][doc_id] *= inverse_document_frequency(len(term_plist), len(self.doc_id_list))
+	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
 	
 
