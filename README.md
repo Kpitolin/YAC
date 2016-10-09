@@ -36,7 +36,8 @@ The steps :
 1. Tokenize the text in file (we have two methods but for now, we use split and remove the punctuation)
 - Create inverted index
 - Compute final scores of each term
-- Search in inverted index most relevant docs from terms in query 
+- Search in inverted index most relevant docs from terms in query
+- Sort them and print the result
 
 Example of inverted index : ```{ "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}```.
 The inner dictionnary is structured that way : ```{doc_id:score}``` both are int for now
@@ -46,4 +47,5 @@ The inner dictionnary is structured that way : ```{doc_id:score}``` both are int
     index.calculate_all_scores_memory() # 3
     query = raw_input("Entrez votre recherche disjonctive: ")
     print "Resutat recherche disjonctive:"
-    findDocsSortedByScore(index.inv_index, query) # 4
+    dicOfDocs = querying.findDocsDisj(index.inv_index, query) # 4
+    querying.sortAndPrintDict(dicOfDocs) # 5
