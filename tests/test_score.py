@@ -1,7 +1,7 @@
 import unittest
 from context import score
 
-class TokenizationTestCase(unittest.TestCase):
+class ScoreTestCase(unittest.TestCase):
 	#def setUp(self):
 
 	#Indexing tests cases
