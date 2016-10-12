@@ -15,6 +15,49 @@ invertedFile = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
 "fishkeepers": {2:1},"found": {1:1},"fresh": {2:1}, "freshwater": {1:1, 4:1},
 "from": {4:1} }
 
+def threshold_algo(inv_index, query_terms, k):
+    sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
+    sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
+    terms = [] # Termes de la requete presents dans l'inverted file
+    for term in query_terms: # Construction des deux index : tries par document et par score
+        if term in inv_index:
+            terms.append(term)
+            sorted_by_docs[term] = inv_index[term]
+            sorted_by_scores[term] = sorted(sorted_by_docs[term], key=inv_index[term].__getitem__, reverse=True)
+    t = 1
+    smallest_score = 0 # Plus petit score parmis les documents du top-k
+    top_k = []
+    docs_met = set()
+    while t > smallest_score: # Iteration sur les documents tries par score
+        t = 0 # Seuil : score maximal atteignable par les documents pas encore etudies
+        for term in terms:
+            if len(sorted_by_scores[term]) > 0:
+                doc = sorted_by_scores[term].pop(0) # Document avec le meilleur score pour ce terme
+                if len(sorted_by_scores[term]) > 0:
+                    t += sorted_by_docs[term][sorted_by_scores[term][0]] # Mise a jour du seuil
+                if not doc in docs_met: # Si c'est la premiere fois qu'on le rencontre
+                    docs_met.add(doc)
+                    score = 0
+                    # Calcul du score du document
+                    for a_term in terms:
+                        if doc in sorted_by_docs[a_term]:
+                            score += sorted_by_docs[a_term][doc]
+                    # Modification eventuelle des top-k documents
+                    #print "Doc " + str(doc) + " has a score of " + str(score)
+                    if len(top_k) < k:
+                        top_k.append((doc, score))
+                        top_k.sort(key=lambda x: x[1])
+                    else:
+                        if score > top_k[0][1]:
+                            top_k.pop(0)
+                            top_k.append((doc, score))
+                            top_k.sort(key=lambda x: x[1])
+                            #print "New top-k :"
+                            #print top_k
+        smallest_score = top_k[0][1]
+        #print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
+    print top_k
+
 
 
 def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
@@ -36,6 +79,7 @@ def sort(dict_score):
     sortedList = sorted(dict_score, key=dict_score.__getitem__, reverse=True)
     return sortedList
 
+
 #Prints a list of pairs {doc id: score} already sorted by score (DESC)
 def printDocOrderedByScores(dict_score,sortedList):
 	if len(sortedList)==0:
@@ -50,7 +94,7 @@ def sortAndPrintDict(dict_score):
 
 
 #Token recherche disjonctive ("OU")
-#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document 
+#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document
 def findDocsDisj(invertedFile, query):
 	queryList = getTerms(query)
 	request = {}
@@ -69,7 +113,7 @@ def popSmallestDict(dictList):
     return smallest
 
 #Token recherche conjonctive ("ET")
-#Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document 
+#Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document
 def findDocsConj(invertedFile,query):
     queryList = getTerms(query)
     postingLists = []
@@ -77,7 +121,7 @@ def findDocsConj(invertedFile,query):
     for word in queryList :
     	if word in invertedFile:
         	postingLists += [invertedFile[word]]
-    
+
 	request = {}
 	last = []
     if len(postingLists)>0:
@@ -120,7 +164,7 @@ if __name__=='__main__':
     sortAndPrintDict(dicOfDocs)
     end = time.clock()
 
-print "Elapsed Time: {} seconds".format(end - start)
+    print "Elapsed Time: {} seconds".format(end - start)
 
 
     #Token recherche conjonctive ("ET")
