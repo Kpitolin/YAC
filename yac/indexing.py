@@ -15,6 +15,10 @@ class Index:
 	 The inner dictionnary is structured that way : {doc_id:score} both are int for now
 	"""
 	doc_id_list = []
+	docLimit = 10
+	memoryLimit = 10
+	currentDocIndex = 0
+	plFileList = []
 
 	def __init__(self, filePathFormat = "", filterTags = False, remove_stopwords = False, case_sensitive = False, with_stemming = False):
 		self.filePathFormat = filePathFormat
@@ -114,3 +118,36 @@ class Index:
 				term_plist = self.inv_index[term]
 				for doc_id in term_plist:
 					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
+
+
+	def createIndexMergedBased(self, documentIndex, text):
+		""" Creates a merged based index 
+			We read text from the stream doc by doc until we reach docLimit or memoryLimit
+			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
+		"""
+		return {"term":[]}
+
+	def saveIndexToFile(self):
+		""" Creates a file following this format : 
+			term 
+			Posting List 
+			term 
+			Posting List
+
+		 	and adds it to the plFileList
+		"""
+
+
+
+	def readTermsInFile(self):
+		"""It reads the ith term of each file, find the lowest term (alphabetical order)
+			and updates a data structure [filename : <term, line>] ordered by term and filename
+			Calls saveFinalPLToFile
+		"""
+
+
+	def saveFinalPLToFile(self):
+		"""Creates a single file for the posting list.
+		   It writes each posting list from offsetMin to offsetMax
+		   It also writes a dic {term : <offsetMin, offsetMax>} 
+		"""
