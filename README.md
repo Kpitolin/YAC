@@ -20,8 +20,18 @@ You must install the following packages to get going :
 
 Follow the instructions [here](http://www.nltk.org/install.html) for nltk.
 
-Install ~~~Every?~~~ corpus.
- 
+
+Install the stopwords corpus:
+In python, execute
+
+    nltk.download()
+    d #When prompted what action to take, d is for Download
+    Download which package (l=list; x=cancel)?
+    Identifier> stopwords 
+
+And it should install.
+
+
 Then execute ```pip install blist```.
 ## How do I use it?
 ### From the command line
