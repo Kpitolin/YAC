@@ -9,18 +9,18 @@ from nltk.stem.porter import PorterStemmer
 from blist import sorteddict
 porter_stemmer = PorterStemmer()
 
-def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
-    stop_words=stopwords.words('english')
+def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
+    stop_words = stopwords.words('english')
 
     if not case_sensitive:
-        query=query.lower()
-    query=re.sub(r"[^a-zA-Z0-9 ]",' ',query)
-    words=[x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
-    terms=[]
+        query = query.lower()
+    query = re.sub(r"[^a-zA-Z0-9 ]",' ',query)
+    words = [x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
+    terms = []
     if with_stemming:
-        terms=[porter_stemmer.stem(word) for word in words]
+        terms = [porter_stemmer.stem(word) for word in words]
     else:
-        terms=words
+        terms = words
     return terms
 
 
@@ -37,8 +37,8 @@ def term_frequency_query(terms):
 def inverse_document_frequency(nb_docs_containing, nb_docs):
     return math.log10(nb_docs/nb_docs_containing)
 
-def calculertf_idf(query,f_term,f_index,f_docID ):
-    terms = getTerms(query)
+def calculertf_idf(query, f_term, f_index, f_docID ):
+    terms = get_terms(query)
     set_terms = set(terms)
     term_freq_query_dict = term_frequency_query(terms)  # Récuperer les fréquences de chaque terme dans la requete
     term_weight_query_dict = {}
