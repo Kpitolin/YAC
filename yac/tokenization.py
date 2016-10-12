@@ -3,7 +3,6 @@ from os import listdir
 from os.path import isfile, join
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
-import helper
 porter_stemmer = PorterStemmer()
 
 
