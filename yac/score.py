@@ -9,7 +9,7 @@ from nltk.stem.porter import PorterStemmer
 from blist import sorteddict
 porter_stemmer = PorterStemmer()
 
-def getTerms(query, remove_stopwords = False , case_sensitive = True , with_stemming = False):
+def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
     stop_words=stopwords.words('english')
 
     if not case_sensitive:

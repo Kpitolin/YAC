@@ -16,9 +16,13 @@ class Index:
 	"""
 	doc_id_list = []
 
-	def __init__(self, filePathFormat = ""):
+	def __init__(self, filePathFormat = "", filterTags = False, remove_stopwords = False, case_sensitive = False, with_stemming = False):
 		self.filePathFormat = filePathFormat
+		self.filterTags = filterTags
 		self.inv_index = {}
+		self.remove_stopwords = remove_stopwords
+		self.case_sensitive = case_sensitive
+		self.with_stemming = with_stemming
 
 	def createIndexFromFileFormat(self):
 		"""Creates the Inverted Index for a file or multiple file of the same format
@@ -70,7 +74,8 @@ class Index:
 			elif re.search(PATTERN_DOC_END, line) and doc != '' and doc_id != '':
 				#if we reached the end of the document, insert tokens in hashmap and flush variables
 
-				words = tokenization.TextFile.tokenizeStringSplit(doc)
+				words = tokenization.TextFile.tokenizeStringSplit(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
+
 				# for the time being, we just calculate the frequency of each term and put it as the score
 				# avoid ZeroDivisionError
 				if len(words) > 0:
