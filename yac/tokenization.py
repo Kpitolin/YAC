@@ -1,6 +1,10 @@
 import nltk, re, os, string
 from os import listdir
 from os.path import isfile, join
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+import helper
+porter_stemmer = PorterStemmer()
 
 
 def filterPunctuation(text):
@@ -24,6 +28,7 @@ class TextFileList:
 
 	def __init__(self, listOfFileNames):
 		self.listOfFileNames = listOfFileNames
+
 
 
 	def tokenizeTextFilesByDocNltk(self, without_tags=False):
@@ -82,6 +87,26 @@ class TextFile:
 	def write(self, stringContent):
 		with open(self.filepath,'w') as text_file:
 			return text_file.write(stringContent)
+
+	@staticmethod
+	def tokenizeStringSplit(text, filterTags = False, remove_stopwords = False, case_sensitive = False, with_stemming = False):
+		tokens = []
+		#extract the tokens out of the raw text
+		stop_words=stopwords.words('english')
+
+		if not case_sensitive:
+			text=text.lower()
+		pattern_split = r'\s+'
+		text = filterPunctuation(text)
+		tokens = re.split(pattern_split,TextFile.filterTags(text)) if filterTags else re.split(pattern_split, text)
+		tokens = list(filter(lambda item: item != "", tokens))
+		words=[x for x in tokens if not remove_stopwords or x.lower() not in stop_words]
+		terms=[]
+		if with_stemming:
+			terms=[porter_stemmer.stem(word) for word in words]
+		else:
+			terms=words
+			return tokens
 
 	def tokenizeTextFileByDocNltk(self,without_tags=False):
 		""" Extracts the words out of a text file with NLTK word_tokenize method
@@ -156,17 +181,7 @@ class TextFile:
 
 		return dictionnary_doc_words
 
-	@staticmethod
-	def tokenizeStringSplit(text, without_tags=False):
-		tokens = []
-		
-		#extract the tokens out of the raw text
-		pattern_split = r'\s+'
-		text = filterPunctuation(text)
-		tokens = re.split(pattern_split,TextFile.filterTags(text)) if without_tags else re.split(pattern_split, text)
-		tokens = list(filter(lambda item: item != "", tokens))
 
-		return tokens
 
 	@staticmethod
 	def tokenizeStringByDocSplit(text, without_tags=False, dictionnary_doc_words = {}):

@@ -1,4 +1,5 @@
 """ this file define a mock of an inverted file and a simple querying algorithm """
+import time
 import re
 import indexing, tokenization
 from sys import argv
@@ -16,7 +17,7 @@ invertedFile = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
 
 
 
-def getTerms(query, remove_stopwords = False , case_sensitive = True , with_stemming = False):
+def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
     stop_words=stopwords.words('english')
 
     if not case_sensitive:
@@ -108,6 +109,8 @@ def findDocsSortedByScoreConj(invertedFile,query):
 if __name__=='__main__':
     #Prompt for query terms
     #Here specify the location of the textfiles to search upon
+    start = time.clock()
+
     index = indexing.Index("../../../../Downloads/latimes/la010189")
     index.createIndexFromFileFormat()
     index.calculate_all_scores_memory()
@@ -115,6 +118,11 @@ if __name__=='__main__':
     print "Resutat recherche disjonctive:"
     dicOfDocs = findDocsDisj(index.inv_index, query)
     sortAndPrintDict(dicOfDocs)
+    end = time.clock()
+
+print "Elapsed Time: {} seconds".format(end - start)
+
+
     #Token recherche conjonctive ("ET")
     #query = raw_input("Entrez votre recherche disjonctive: ")
     #findDocsSortedByScoreConj(invertedFile,query)
