@@ -10,7 +10,7 @@ PATTERN_DOC_END = r"</DOC>"
 
 
 class Index:
-	""" Example of inv_index : 
+	""" Example of inv_index :
 	 { "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}
 	 The inner dictionnary is structured that way : {doc_id:score} both are int for now
 	"""
@@ -19,7 +19,7 @@ class Index:
 	def __init__(self, filePathFormat = ""):
 		self.filePathFormat = filePathFormat
 		self.inv_index = {}
-	
+
 	def createIndexFromFileFormat(self):
 		"""Creates the Inverted Index for a file or multiple file of the same format
 		For now, the score is just the frequency of the term in the document
@@ -37,15 +37,15 @@ class Index:
 			#filling of the Inverted Index
 			for filename in glob.glob(self.filePathFormat):
 				lines = open(filename, 'r')
-				inv_index = self.createIndexFromText(lines)
-					
-		return inv_index
+				self.inv_index = self.createIndexFromText(lines)
 
-	#We had a pb in inv_index => if you execute the function two times in a row with default parameters, inv_index has a value the second time
+		return self.inv_index
+
+	# We had a pb in inv_index => if you execute the function two times in a row with default parameters, inv_index has a value the second time
 	def createIndexFromText(self, text):
 		"""Creates the Inverted Index for a text
 
-		Usage 
+		Usage
 		a = indexing.Index().createIndexFromText(textMultiline)
 		"""
 
@@ -56,7 +56,7 @@ class Index:
 		#textfile
 		if hasattr(text, 'readlines'):
 			lines = text
-		#multi-line string 
+		#multi-line string
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
 
@@ -69,7 +69,7 @@ class Index:
 				self.doc_id_list.append(doc_id)
 			elif re.search(PATTERN_DOC_END, line) and doc != '' and doc_id != '':
 				#if we reached the end of the document, insert tokens in hashmap and flush variables
-				
+
 				words = tokenization.TextFile.tokenizeStringSplit(doc)
 				# for the time being, we just calculate the frequency of each term and put it as the score
 				# avoid ZeroDivisionError
@@ -89,16 +89,16 @@ class Index:
 		return self.inv_index
 
 
-	#Replaces the temporary score by the tf idf in each item of the index dictionnary
-	def  calculate_all_scores_memory(self):
+	# Replaces the temporary score by the tf idf in each item of the index dictionnary
+	def calculate_all_scores_memory(self):
 
 	    for term,term_plist in self.inv_index.iteritems():
 	    	for doc_id in self.inv_index[term]:
 	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
-	
 
-	#Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
-	def  calculate_terms_in_query_scores_memory(self, query):
+
+	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
+	def calculate_terms_in_query_scores_memory(self, query):
 
 		for term in score.getTerms(query):
 			#print list(self.inv_index.iteritems())
@@ -109,5 +109,3 @@ class Index:
 				term_plist = self.inv_index[term]
 				for doc_id in term_plist:
 					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
-	
-

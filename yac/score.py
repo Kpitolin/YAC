@@ -37,12 +37,11 @@ def term_frequency_query(terms):
 def inverse_document_frequency(nb_docs_containing, nb_docs):
     return math.log10(nb_docs/nb_docs_containing)
 
-def  calculertf_idf(query,f_term,f_index,f_docID ):
+def calculertf_idf(query,f_term,f_index,f_docID ):
     terms = getTerms(query)
     set_terms = set(terms)
     term_freq_query_dict = term_frequency_query(terms)  # Récuperer les fréquences de chaque terme dans la requete
     term_weight_query_dict = {}
-    term_freq_query_dict = term_frequency_query(terms)
     count_found_term = 0  # Le nombre de terme dont la postingslist est déjà trouvée
     norm_doc_dict = {}  # La norme du vecteur construit par les fréquences de chaque terme dans chaque doc
     nb_docs = 0
@@ -73,6 +72,3 @@ def  calculertf_idf(query,f_term,f_index,f_docID ):
                 if count_found_term == len(set_terms):
                     break
     return term_weight_query_dict
-
-
-
