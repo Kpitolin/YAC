@@ -136,7 +136,15 @@ class Index:
 
 		 	and adds it to the plFileList
 		"""
-
+		file_name = "IndexFiles/fileIndex" + str(len(self.plFileList))
+		with open(file_name,"a+") as f:		
+			sortedIndex = sorted(self.inv_index)
+			for word in sortedIndex :
+				f.write(word+"\n")
+				for pl in self.inv_index[word] :
+					f.write(str(pl)+","+ str(self.inv_index[word][pl])+";")
+				f.write("\n")
+				self.plFileList.append(file_name)
 
 
 	def readTermsInFile(self):

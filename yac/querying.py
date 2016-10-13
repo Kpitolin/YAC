@@ -111,8 +111,10 @@ if __name__=='__main__':
     #Here specify the location of the textfiles to search upon
     start = time.clock()
 
-    index = indexing.Index("../latimes/la040290")
+
+    index = indexing.Index("../latimes/la021*")
     index.createIndexFromFileFormat()
+    index.saveIndexToFile()
     index.calculate_all_scores_memory()
     query = raw_input("Entrez votre recherche disjonctive: ")
     print "Resutat recherche disjonctive:"
