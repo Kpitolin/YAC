@@ -120,7 +120,7 @@ if __name__=='__main__':
     sortAndPrintDict(dicOfDocs)
     end = time.clock()
 
-print "Elapsed Time: {} seconds".format(end - start)
+    print "Elapsed Time: {} seconds".format(end - start)
 
 
     #Token recherche conjonctive ("ET")
