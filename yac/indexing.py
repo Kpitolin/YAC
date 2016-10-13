@@ -108,10 +108,7 @@ class Index:
 
         for term in score.get_terms(query):
             #print list(self.inv_index.iteritems())
-            print("Term query {}".format(term))
-
             if term in self.inv_index:
-                print("Term in plist {}".format(term))
                 term_plist = self.inv_index[term]
                 for doc_id in term_plist:
                     self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
