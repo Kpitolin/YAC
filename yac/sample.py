@@ -7,7 +7,7 @@ import querying
 # if you are at ./YAC and the file is in the folder above, pathToFile = ../la010189 for example
 start = time.clock()
 
-index = indexing.Index("../../latimes/la010189") # Object initialization
+index = indexing.Index("../latimes/la*") # Object initialization
 index.createIndexFromFileFormat() # 1 + 2
 index.calculate_all_scores_memory() # 3
 query = raw_input("Entrez votre recherche disjonctive: ")
