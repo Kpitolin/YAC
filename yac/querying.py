@@ -114,7 +114,6 @@ if __name__=='__main__':
 
     index = indexing.Index("../latimes/la021*")
     index.createIndexFromFileFormat()
-    index.saveIndexToFile()
     index.calculate_all_scores_memory()
     query = raw_input("Entrez votre recherche disjonctive: ")
     print "Resutat recherche disjonctive:"

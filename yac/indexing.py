@@ -129,7 +129,7 @@ class Index:
 
 	    for term,term_plist in self.inv_index.iteritems():
 	    	for doc_id in self.inv_index[term]:
-	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
+	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
 	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
@@ -140,7 +140,7 @@ class Index:
 			if term in self.inv_index:
 				term_plist = self.inv_index[term]
 				for doc_id in term_plist:
-					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self.doc_id_list))
+					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
 	def createIndexMergedBasedFromText(self, text):
@@ -213,17 +213,17 @@ class Index:
 			term 
 			Posting List
 
-		 	and adds it to the plFileList
+		 	and adds it to the self._pl_file_list
 		"""
-		file_name = "IndexFiles/fileIndex" + str(len(self.plFileList))
+		file_name = "IndexFiles/fileIndex" + str(len(self._pl_file_list))
 		with open(file_name,"a+") as f:		
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
 				f.write(word+"\n")
-				for pl in self.inv_index[word] :
-					f.write(str(pl)+","+ str(self.inv_index[word][pl])+";")
+				for doc, score in self.inv_index[word] :
+					f.write(str(doc)+","+ str(score)+";")
 				f.write("\n")
-				self.plFileList.append(file_name)
+				self._pl_file_list.append(file_name)
 
 
 	def readTermsInFile(self):
