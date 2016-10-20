@@ -4,6 +4,7 @@ import glob
 import re
 import tokenization
 import score
+from blist import sorteddict,sortedlist
 
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
 PATTERN_DOC_END = r"</DOC>"
@@ -52,6 +53,11 @@ class Index:
 		self._current_doc_index = 0
 		self._doc_limit = 10
 		self._memory_limit = 10
+
+		self.dictFileTerm = sorteddict()
+		self.dictTermPL = dict()
+
+		self.dictTermsOffset=dict()
 
 
 	def createIndexFromFileFormat(self):
@@ -225,6 +231,19 @@ class Index:
 				f.write("\n")
 				self._pl_file_list.append(file_name)
 
+	def readTermsFromiFile(self,f,ifilename):
+		term = f.readline()
+		if len(term) == 0:
+			return False
+		pl = f.readline()
+		if term not in self.dictFileTerm.keys():
+			self.dictFileTerm[term] = list().append(ifilename)
+			self.dictTermPL[term] = list().append(pl)
+		else:
+			(self.dictFileTerm[term]).append(ifilename)
+			(self.dictTermPL[term]).append(pl)
+		return True
+
 
 	def readTermsInFile(self):
 		"""It reads the ith term of each file, find the lowest term (alphabetical order)
@@ -232,9 +251,46 @@ class Index:
 			Calls saveFinalPLToFile
 		"""
 
+		term=''
+		dictFile = {}
+		#fileFinished=list()#
 
-	def saveFinalPLToFile(self):
+		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
+		for ifilename in  self._pl_file_list :
+			with open(ifilename, "r") as f:
+				dictFile[ifilename]=f
+				if self.readTermsFromiFile(f,ifilename):
+					print('Read a line from '+ifilename)
+				else :
+					f.close()
+					continue
+		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
+		while bool(self.dictFileTerm):
+			element = self.dictFileTerm.popitem()
+			pl=self.dictTermPL[element[0]]
+			if(self.saveFinalPLToFile(element[0],pl)):
+				for filename in element[1]:
+					with dictFile[filename] as f:
+						self.readTermsFromiFile(f,f,filename)
+			else:
+				return False
+		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
+
+
+
+
+	def saveFinalPLToFile(self,term,PL):
 		"""Creates a single file for the posting list.
 		   It writes each posting list from offsetMin to offsetMax
 		   It also writes a dic {term : <offsetMin, offsetMax>} 
 		"""
+		with open('InvertedFile', "a+") as ifile:
+			ifile.write(term+"\n")
+			offsetMin=ifile.tell()
+			ifile.write(PL)
+			offserMax=ifile.tell()
+			self.dictTermsOffset[term]=(offsetMin,offserMax)
+			ifile.close()
+		return True
+
+
