@@ -4,6 +4,7 @@ import glob
 import re
 import tokenization
 import score
+import time
 from blist import sorteddict,sortedlist
 
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
@@ -221,7 +222,7 @@ class Index:
 
 		 	and adds it to the self._pl_file_list
 		"""
-		file_name = "IndexFiles/fileIndex" + str(len(self._pl_file_list))
+		file_name = "fileIndex" + str(time.clock())
 		with open(file_name,"a+") as f:		
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
