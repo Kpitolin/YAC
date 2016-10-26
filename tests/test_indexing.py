@@ -137,7 +137,7 @@ class IndexingTestCase(unittest.TestCase):
 
 		index = indexing.Index() 
 		index._doc_limit = 2
-		self.assertEqual( index.createIndexMergedBasedFromText(stringNormalDoc) , resultedIndex)
+		self.assertEqual( index.create_index_merged_based_from_text(stringNormalDoc) , resultedIndex)
 
 
 	def test_create_index_merged_based_limit_one_doc(self):
@@ -155,7 +155,7 @@ class IndexingTestCase(unittest.TestCase):
 
 		index = indexing.Index() 
 		index._doc_limit = 1
-		self.assertEqual( index.createIndexMergedBasedFromText(stringNormalDoc) , resultedIndex)
+		self.assertEqual( index.create_index_merged_based_from_text(stringNormalDoc) , resultedIndex)
 
 
 	def test_create_index_merged_based_limit_one_doc_from_second_doc(self):
@@ -173,7 +173,7 @@ class IndexingTestCase(unittest.TestCase):
 		index = indexing.Index() 
 		index._current_doc_index = 2
 		index._doc_limit = 1
-		partialIndex = index.createIndexMergedBasedFromText(stringNormalDoc) 
+		partialIndex = index.create_index_merged_based_from_text(stringNormalDoc) 
 		self.assertEqual(partialIndex, resultedIndex)
 
 
@@ -190,7 +190,28 @@ class IndexingTestCase(unittest.TestCase):
 
 		resultedIndex = {} 
 		self._index._doc_limit = 0
-		self.assertEqual(self._index.createIndexMergedBasedFromText(stringNormalDoc), resultedIndex)
+		self.assertEqual(self._index.create_index_merged_based_from_text(stringNormalDoc), resultedIndex)
+
+
+	def test_create_index_merged_based_all_docs_with_save(self):
+		stringNormalDoc = """
+		<DOC>
+		<DOCID> 1 </DOCID>
+		The onset of "the new Gorbachev".
+		</DOC>
+		<DOC>
+		<DOCID> 2 </DOCID>
+		the onset of "the new Gorbachev"!
+		</DOC>"""
+
+		index = indexing.Index() 
+
+		index._doc_limit = 1
+		partial_index = index.create_index_merged_based_from_text(stringNormalDoc)
+		self.assertNotEqual(index._pl_file_list, [])
+		resultingTextFile = "1\n1,0.0909090909091;\n</doc>\n1,0.0909090909091;\n</docid>\n1,0.0909090909091;\n<doc>\n1,0.0909090909091;\n<docid>\n1,0.0909090909091;\ngorbachev\n1,0.0909090909091;\nnew\n1,0.0909090909091;\nof\n1,0.0909090909091;\nonset\n1,0.0909090909091;\nthe\n1,0.181818181818;\n"
+		self.assertEqual(self.read_file(index._pl_file_list[0]), resultingTextFile)
+
 
 	def test_save_index_to_file_zero_doc(self):
 		stringNormalDoc = """
@@ -204,7 +225,7 @@ class IndexingTestCase(unittest.TestCase):
 		</DOC>"""
 
 		self._index.inv_index = {}
-		self._index.saveIndexToFile()
+		self._index.save_index_to_file()
 		self.assertEqual(self._index._pl_file_list, [])
 
 	def test_save_index_to_file_one_doc(self):
@@ -216,7 +237,7 @@ class IndexingTestCase(unittest.TestCase):
 
 		resultedIndex = { "<docid>":[(1,1.0/11)], "</docid>":[(1,1.0/11)],  "<doc>":[(1,1.0/11)], "</doc>": [(1,1.0/11)], "1": [(1,1.0/11)], "the": [(1,2.0/11)], "onset": [(1,1.0/11)], "of":[(1,1.0/11)], "new":[(1,1.0/11)],"gorbachev":[(1,1.0/11)]}
 		self._index.inv_index = resultedIndex		
-		self._index.saveIndexToFile()
+		self._index.save_index_to_file()
 		resultingTextFile = "1\n1,0.0909090909091;\n</doc>\n1,0.0909090909091;\n</docid>\n1,0.0909090909091;\n<doc>\n1,0.0909090909091;\n<docid>\n1,0.0909090909091;\ngorbachev\n1,0.0909090909091;\nnew\n1,0.0909090909091;\nof\n1,0.0909090909091;\nonset\n1,0.0909090909091;\nthe\n1,0.181818181818;\n"
 		self.assertEqual(self.read_file(self._index._pl_file_list[0]), resultingTextFile)
 		
@@ -233,10 +254,42 @@ class IndexingTestCase(unittest.TestCase):
 
 		resultedIndex = { "<docid>":[(1,1.0/11), (2,1.0/11)], "</docid>":[(1,1.0/11), (2,1.0/11)],  "<doc>":[(1,1.0/11), (2,1.0/11)], "</doc>": [(1,1.0/11), (2,1.0/11)], "1": [(1,1.0/11)], "2": [(2,1.0/11)], "the": [(1,2.0/11), (2,2.0/11)], "onset": [(1,1.0/11), (2,1.0/11)], "of":[(1,1.0/11), (2,1.0/11)], "new":[(1,1.0/11), (2,1.0/11)],"gorbachev":[(1,1.0/11), (2,1.0/11)]}
 		self._index.inv_index = resultedIndex		
-		self._index.saveIndexToFile()
+		self._index.save_index_to_file()
 		resultingTextFile = "1\n1,0.0909090909091;\n2\n2,0.0909090909091;\n</doc>\n1,0.0909090909091;2,0.0909090909091;\n</docid>\n1,0.0909090909091;2,0.0909090909091;\n<doc>\n1,0.0909090909091;2,0.0909090909091;\n<docid>\n1,0.0909090909091;2,0.0909090909091;\ngorbachev\n1,0.0909090909091;2,0.0909090909091;\nnew\n1,0.0909090909091;2,0.0909090909091;\nof\n1,0.0909090909091;2,0.0909090909091;\nonset\n1,0.0909090909091;2,0.0909090909091;\nthe\n1,0.181818181818;2,0.181818181818;\n"
 		self.assertEqual(self.read_file(self._index._pl_file_list[0]), resultingTextFile)
 
+	def test_read_terms_from_i_file_empty(self):
+		with open('fileIndexTest1', "w") as ifile:
+			ifile.write("  ")
+		with open('fileIndexTest1', "r") as ifile:
+			self.assertFalse(self._index.read_terms_from_i_file(ifile, "fileIndexTest1"))
+
+	def test_read_terms_from_i_file_one_term(self):
+		with open('fileIndexTest2', "w") as ifile:
+			ifile.write("</doc>")
+		with open('fileIndexTest2', "r") as ifile:
+			self.assertTrue(self._index.read_terms_from_i_file(ifile, "fileIndexTest2"))
+
+	def test_read_terms_from_i_file_one_term_one_pl(self):
+		with open('fileIndexTest3', "w") as ifile:
+			ifile.write("term" + "\n")
+			ifile.write("posting List" + "\n")
+		with open('fileIndexTest3', "r") as ifile:
+			self.assertTrue(self._index.read_terms_from_i_file(ifile, "fileIndexTest3"))
+
+
+	def test_read_terms_from_i_file_one_term_reached_end(self):
+		with open('fileIndexTest4', "w") as ifile:
+			ifile.write("term" + "\n")
+			ifile.write("posting List" + "\n")
+		with open('fileIndexTest4', "r") as ifile:
+			self._index.read_terms_from_i_file(ifile, "fileIndexTest4")
+			self.assertFalse(self._index.read_terms_from_i_file(ifile, "fileIndexTest4"))
+
+"""	def test_read_terms_from_i_file_two_doc(self):
+		self._index.read_terms_from_i_file()
+
+"""
 
 if __name__=='__main__':
 	unittest.main()

@@ -55,8 +55,8 @@ class Index:
 		self._doc_limit = 10
 		self._memory_limit = 10
 
-		self.dictFileTerm = sorteddict()
-		self.dictTermPL = dict()
+		self.dict_file_term = sorteddict()
+		self.dict_term_pl = dict()
 
 		self.dictTermsOffset=dict()
 
@@ -150,7 +150,7 @@ class Index:
 					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
-	def createIndexMergedBasedFromText(self, text):
+	def create_index_merged_based_from_text(self, text):
 		""" Creates a merged based index 
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
@@ -170,10 +170,11 @@ class Index:
 			lines = text.splitlines(False)
 
 		nbDoc = 0
-		inv_index = {}
+		self.inv_index = {}
 		for line in lines:
 			
 			if nbDoc >= self._doc_limit:
+				self.save_index_to_file()
 				break
 			doc = doc + '\n' + line
 			match = re.search(PATTERN_DOC_ID, line)
@@ -196,24 +197,25 @@ class Index:
 					if len(words) > 0:
 						score = 1.0/len(words)
 						for word in words:
-							if not word in inv_index:
-								inv_index[word] = [(doc_id, score)]
+							if not word in self.inv_index:
+								self.inv_index[word] = [(doc_id, score)]
 							else:
-								lastDocIndex = len(inv_index[word]) - 1
-								(docIdTemp, scoreTemp) = inv_index[word][lastDocIndex]
+								lastDocIndex = len(self.inv_index[word]) - 1
+								(docIdTemp, scoreTemp) = self.inv_index[word][lastDocIndex]
 								if doc_id != docIdTemp:
-									inv_index[word].append((doc_id, score))
+									self.inv_index[word].append((doc_id, score))
 								else:
-									inv_index[word].pop()
-									inv_index[word].append((docIdTemp, score + scoreTemp))
+									self.inv_index[word].pop()
+									self.inv_index[word].append((docIdTemp, score + scoreTemp))
 
 					nbDoc+=1
 				# flush variables before passing to the next document
 				doc = ''
 				del doc_id
-		return inv_index
+				
+		return self.inv_index
 
-	def saveIndexToFile(self):
+	def save_index_to_file(self):
 		""" Creates a file following this format : 
 			term 
 			Posting List 
@@ -232,24 +234,29 @@ class Index:
 				f.write("\n")
 				self._pl_file_list.append(file_name)
 
-	def readTermsFromiFile(self,f,ifilename):
+
+	def read_terms_from_i_file(self,f,ifilename):
+		pattern_term = r"<?/?\w+"
+
 		term = f.readline()
-		if len(term) == 0:
+		if len(term) == 0 or not re.match(pattern_term,term):
 			return False
 		pl = f.readline()
-		if term not in self.dictFileTerm.keys():
-			self.dictFileTerm[term] = list().append(ifilename)
-			self.dictTermPL[term] = list().append(pl)
+		if term not in self.dict_file_term.keys():
+			self.dict_file_term[term] = list().append(ifilename)
+			self.dict_term_pl[term] = list().append(pl)
 		else:
-			(self.dictFileTerm[term]).append(ifilename)
-			(self.dictTermPL[term]).append(pl)
+			(self.dict_file_term[term]).append(ifilename)
+			(self.dict_term_pl[term]).append(pl)
 		return True
 
 
-	def readTermsInFile(self):
+	def read_terms_in_file(self):
 		"""It reads the ith term of each file, find the lowest term (alphabetical order)
 			and updates a data structure [filename : <term, line>] ordered by term and filename
-			Calls saveFinalPLToFile
+			Calls save_final_pl_to_file
+
+			dictFile is a data structure {filename: content} that allows us to have the state of everything open file saved (with the cursor at the last line read)
 		"""
 
 		term=''
@@ -260,19 +267,19 @@ class Index:
 		for ifilename in  self._pl_file_list :
 			with open(ifilename, "r") as f:
 				dictFile[ifilename]=f
-				if self.readTermsFromiFile(f,ifilename):
+				if self.read_terms_from_i_file(f,ifilename):
 					print('Read a line from '+ifilename)
 				else :
 					f.close()
 					continue
 		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
-		while bool(self.dictFileTerm):
-			element = self.dictFileTerm.popitem()
-			pl=self.dictTermPL[element[0]]
-			if(self.saveFinalPLToFile(element[0],pl)):
+		while bool(self.dict_file_term): 
+			element = self.dict_file_term.popitem() # return the pair <term, filename> with the lowest key (sorteddict)
+			pl=self.dict_term_pl[element[0]]
+			if(self.save_final_pl_to_file(element[0],pl)):
 				for filename in element[1]:
 					with dictFile[filename] as f:
-						self.readTermsFromiFile(f,f,filename)
+						self.read_terms_from_i_file(f,f,filename)
 			else:
 				return False
 		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
@@ -280,7 +287,7 @@ class Index:
 
 
 
-	def saveFinalPLToFile(self,term,PL):
+	def save_final_pl_to_file(self,term,PL):
 		"""Creates a single file for the posting list.
 		   It writes each posting list from offsetMin to offsetMax
 		   It also writes a dic {term : <offsetMin, offsetMax>} 
