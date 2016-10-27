@@ -139,6 +139,45 @@ class Index:
 	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
+	def calculate_all_scores_merged_based(self):
+		"""Modify final inverted file to write final score for each doc in eah pl
+		"""
+		with open('InvertedFile', "r") as ifile:
+			nb_docs = int(ifile.readline())
+			text = ifile.readline()
+			if re.match(r"<?/?\w+;", text):
+				posting_list = self.text_to_pl(text)
+			for index in range(len(posting_list)):
+				(doc_id,scoreTemp) = posting_list[index]
+				scoreTemp *= score.inverse_document_frequency(len(posting_list), nb_docs)
+				posting_list[index] = (doc_id,scoreTemp)
+
+
+
+	def pair_list_to_text(self,pl):
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+			docId, Score;  docId, Score;
+		"""
+		for (item1, item2) in pl:
+			text = text + str(item1)+","+ str(item2)+";"
+
+	def text_to_pair_list(self, text):
+		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
+		"""
+		lines =[]
+		#textfile
+		if hasattr(text, 'readlines'):
+			lines = text
+		#multi-line string
+		elif isinstance(text,str):
+			lines = text.splitlines(False)
+
+		for line in lines:
+			pair_list = text.split(";")
+			for index in range(len(pair_list)):
+				pair = pair_list[index].split(",")
+				pair_list[index] = (pair[0],pair[1])
+		return pair_list
 	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
 	def calculate_terms_in_query_scores_memory(self, query):
 
@@ -279,26 +318,34 @@ class Index:
 			if(self.save_final_pl_to_file(element[0],pl)):
 				for filename in element[1]:
 					with dictFile[filename] as f:
-						self.read_terms_from_i_file(f,f,filename)
+						self.read_terms_from_i_file(f,f,filename) 
 			else:
 				return False
 		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
-
+		self.save_extra_file()
 
 
 
 	def save_final_pl_to_file(self,term,PL):
-		"""Creates a single file for the posting list.
+		"""Creates a single file for the posting lists. format : 
+			PL;PL2;PL3 and so on
 		   It writes each posting list from offsetMin to offsetMax
-		   It also writes a dic {term : <offsetMin, offsetMax>} 
 		"""
 		with open('InvertedFile', "a+") as ifile:
-			ifile.write(term+"\n")
+			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			ifile.write(PL)
+			ifile.writelines(PL)
 			offserMax=ifile.tell()
 			self.dictTermsOffset[term]=(offsetMin,offserMax)
 			ifile.close()
 		return True
+
+	def save_extra_file(self):
+		""" Saves the nb of docs to file
+		It also writes a dic {term : <offsetMin, offsetMax>} 
+		"""
+		with open('ExtraFile', "w") as ifile:
+			ifile.write("{}\n".format(len(self._doc_id_list))) #todo once
+			ifile.write(self.pair_to_text(self.dictTermsOffset))
 
 

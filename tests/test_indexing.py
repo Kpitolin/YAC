@@ -286,10 +286,7 @@ class IndexingTestCase(unittest.TestCase):
 			self._index.read_terms_from_i_file(ifile, "fileIndexTest4")
 			self.assertFalse(self._index.read_terms_from_i_file(ifile, "fileIndexTest4"))
 
-"""	def test_read_terms_from_i_file_two_doc(self):
-		self._index.read_terms_from_i_file()
 
-"""
 
 if __name__=='__main__':
 	unittest.main()
