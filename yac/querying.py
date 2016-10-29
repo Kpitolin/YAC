@@ -7,15 +7,6 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 porter_stemmer = PorterStemmer()
 
-#inverted file
-invertedFile = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
-"around": {1:1}, "as": {2:1},"both": {1:1},
-"bright": {3:1},"coloration": {3:1, 4:1},"derives": {4:1},
-"due": {3:1},"environements": {1:1},"fish": {1:2, 2:3, 3:2, 4:7},
-"fishkeepers": {2:1},"found": {1:1},"fresh": {2:1}, "freshwater": {1:1, 4:1},
-"from": {4:1} }
-
-
 
 def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
     stop_words=stopwords.words('english')
@@ -114,7 +105,7 @@ if __name__=='__main__':
 
     index = indexing.Index("../latimes/la021*")
     index.createIndexFromFileFormat()
-    index.calculate_all_scores_memory()
+    #index.calculate_all_scores_merged_based()
     query = raw_input("Entrez votre recherche disjonctive: ")
     print "Resutat recherche disjonctive:"
     dicOfDocs = findDocsDisj(index.inv_index, query)

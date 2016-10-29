@@ -7,6 +7,8 @@ import score
 import time
 from blist import sorteddict,sortedlist
 
+
+
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
 PATTERN_DOC_END = r"</DOC>"
 
@@ -78,7 +80,8 @@ class Index:
 			#filling of the Inverted Index
 			for filename in glob.glob(self.filePathFormat):
 				lines = open(filename, 'r')
-				self.inv_index = self.createIndexFromText(lines)
+				self.inv_index = self.create_index_merged_based_from_text(lines)
+			self.read_terms_in_file()
 
 		return self.inv_index
 
@@ -158,8 +161,10 @@ class Index:
 		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
 			docId, Score;  docId, Score;
 		"""
+		text = ""
 		for (item1, item2) in pl:
 			text = text + str(item1)+","+ str(item2)+";"
+		return text
 
 	def text_to_pair_list(self, text):
 		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
@@ -178,6 +183,7 @@ class Index:
 				pair = pair_list[index].split(",")
 				pair_list[index] = (pair[0],pair[1])
 		return pair_list
+
 	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
 	def calculate_terms_in_query_scores_memory(self, query):
 
@@ -251,7 +257,6 @@ class Index:
 				# flush variables before passing to the next document
 				doc = ''
 				del doc_id
-				
 		return self.inv_index
 
 	def save_index_to_file(self):
@@ -268,25 +273,32 @@ class Index:
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
 				f.write(word+"\n")
-				for doc, score in self.inv_index[word] :
-					f.write(str(doc)+","+ str(score)+";")
+				f.write(self.pair_list_to_text(self.inv_index[word]))
 				f.write("\n")
-				self._pl_file_list.append(file_name)
+		self._pl_file_list.append(file_name)
+
+	def __read_word_from_index(self,f):
+			if f.tell()==0:	
+				return f.readline()
+			else:
+				f.readline()
+				return f.readline()
 
 
 	def read_terms_from_i_file(self,f,ifilename):
 		pattern_term = r"<?/?\w+"
-
 		term = f.readline()
-		if len(term) == 0 or not re.match(pattern_term,term):
-			return False
 		pl = f.readline()
+		if len(term) != 0 and not re.match(pattern_term,term):
+			return self.read_terms_from_i_file(f,ifilename)
+		elif len(term) == 0 :
+			return False
 		if term not in self.dict_file_term.keys():
-			self.dict_file_term[term] = list().append(ifilename)
-			self.dict_term_pl[term] = list().append(pl)
+			self.dict_file_term[term] =[ifilename]
+			self.dict_term_pl[term] = pl.rstrip()
 		else:
 			(self.dict_file_term[term]).append(ifilename)
-			(self.dict_term_pl[term]).append(pl)
+			(self.dict_term_pl[term])=(self.dict_term_pl[term])+(pl.rstrip())
 		return True
 
 
@@ -301,24 +313,20 @@ class Index:
 		term=''
 		dictFile = {}
 		#fileFinished=list()#
-
 		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
 		for ifilename in  self._pl_file_list :
-			with open(ifilename, "r") as f:
-				dictFile[ifilename]=f
-				if self.read_terms_from_i_file(f,ifilename):
-					print('Read a line from '+ifilename)
-				else :
-					f.close()
-					continue
+			dictFile[ifilename] = open(ifilename, "r");
+			self.read_terms_from_i_file(dictFile[ifilename],ifilename)
 		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
 		while bool(self.dict_file_term): 
+		#for num in range(10,20):
 			element = self.dict_file_term.popitem() # return the pair <term, filename> with the lowest key (sorteddict)
 			pl=self.dict_term_pl[element[0]]
 			if(self.save_final_pl_to_file(element[0],pl)):
-				for filename in element[1]:
-					with dictFile[filename] as f:
-						self.read_terms_from_i_file(f,f,filename) 
+				for ifilename in element[1]:
+					if(self.read_terms_from_i_file(dictFile[ifilename],ifilename) == False):
+						dictFile[ifilename].close()
+						del dictFile[ifilename]
 			else:
 				return False
 		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
@@ -334,10 +342,9 @@ class Index:
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			ifile.writelines(PL)
-			offserMax=ifile.tell()
-			self.dictTermsOffset[term]=(offsetMin,offserMax)
-			ifile.close()
+			ifile.writelines(PL+"\n")
+			offsetMax=ifile.tell()
+			self.dictTermsOffset[term]=(offsetMin,offsetMax)
 		return True
 
 	def save_extra_file(self):
@@ -346,6 +353,6 @@ class Index:
 		"""
 		with open('ExtraFile', "w") as ifile:
 			ifile.write("{}\n".format(len(self._doc_id_list))) #todo once
-			ifile.write(self.pair_to_text(self.dictTermsOffset))
+			#ifile.write(self.pair_list_to_text(self.dictTermsOffset))
 
 
