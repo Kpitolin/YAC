@@ -294,11 +294,11 @@ class Index:
 		elif len(term) == 0 :
 			return False
 		if term not in self.dict_file_term.keys():
-			self.dict_file_term[term] =[ifilename]
-			self.dict_term_pl[term] = pl.rstrip()
+			self.dict_file_term[term] =sortedlist([ifilename])
+			self.dict_term_pl[term] = [pl.rstrip()]
 		else:
-			(self.dict_file_term[term]).append(ifilename)
-			(self.dict_term_pl[term])=(self.dict_term_pl[term])+(pl.rstrip())
+			(self.dict_file_term[term]).add(ifilename)
+			(self.dict_term_pl[term]).insert((self.dict_file_term[term]).index(ifilename),pl.rstrip())
 		return True
 
 
@@ -342,7 +342,7 @@ class Index:
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			ifile.writelines(PL+"\n")
+			ifile.writelines(''.join(str(v) for v in PL)+"\n")
 			offsetMax=ifile.tell()
 			self.dictTermsOffset[term]=(offsetMin,offsetMax)
 		return True
