@@ -141,22 +141,6 @@ class Index:
 	    	for doc_id in self.inv_index[term]:
 	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
-
-	def calculate_all_scores_merged_based(self):
-		"""Modify final inverted file to write final score for each doc in eah pl
-		"""
-		with open('InvertedFile', "r") as ifile:
-			nb_docs = int(ifile.readline())
-			text = ifile.readline()
-			if re.match(r"<?/?\w+;", text):
-				posting_list = self.text_to_pl(text)
-			for index in range(len(posting_list)):
-				(doc_id,scoreTemp) = posting_list[index]
-				scoreTemp *= score.inverse_document_frequency(len(posting_list), nb_docs)
-				posting_list[index] = (doc_id,scoreTemp)
-
-
-
 	def pair_list_to_text(self,pl):
 		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
 			docId, Score;  docId, Score;
@@ -176,9 +160,8 @@ class Index:
 		#multi-line string
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
-
 		for line in lines:
-			pair_list = text.split(";")
+			pair_list = text.rstrip().split(";")[:-1]
 			for index in range(len(pair_list)):
 				pair = pair_list[index].split(",")
 				pair_list[index] = (pair[0],pair[1])
@@ -230,6 +213,7 @@ class Index:
 				if doc_id >= self._current_doc_index:
 
 					self._doc_id_list.append(doc_id)
+					print(self._doc_id_list)
 					self._current_doc_index = doc_id
 					
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
@@ -295,10 +279,13 @@ class Index:
 			return False
 		if term not in self.dict_file_term.keys():
 			self.dict_file_term[term] =sortedlist([ifilename])
-			self.dict_term_pl[term] = [pl.rstrip()]
+			self.dict_term_pl[term] = self.text_to_pair_list(pl)
 		else:
 			(self.dict_file_term[term]).add(ifilename)
-			(self.dict_term_pl[term]).insert((self.dict_file_term[term]).index(ifilename),pl.rstrip())
+			pair_list=self.text_to_pair_list(pl)
+			index_0 = (self.dict_file_term[term]).index(ifilename)
+			for i in range(len(pair_list)):
+				(self.dict_term_pl[term]).insert(index_0,pair_list[i])
 		return True
 
 
@@ -333,16 +320,26 @@ class Index:
 		self.save_extra_file()
 
 
+	def calculate_all_term_pl_scores(self, PL):
+		"""Modify final inverted file to write final score for each doc in eah pl
+		"""
+		nb_docs = len(self._doc_id_list)
+		for index in range(len(PL)):
+			(doc_id,scoreTemp) = map(float,PL[index])
+			scoreTemp *= score.inverse_document_frequency(len(PL), nb_docs)
+			PL[index] = (doc_id,scoreTemp)
+
 
 	def save_final_pl_to_file(self,term,PL):
 		"""Creates a single file for the posting lists. format : 
 			PL;PL2;PL3 and so on
 		   It writes each posting list from offsetMin to offsetMax
 		"""
+		self.calculate_all_term_pl_scores(PL)
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			ifile.writelines(''.join(str(v) for v in PL)+"\n")
+			ifile.writelines(self.pair_list_to_text(PL)+"\n")
 			offsetMax=ifile.tell()
 			self.dictTermsOffset[term]=(offsetMin,offsetMax)
 		return True

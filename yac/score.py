@@ -35,7 +35,7 @@ def term_frequency_query(terms):
 
 
 def inverse_document_frequency(nb_docs_containing, nb_docs):
-    
+    nb_docs_containing = 21
     try:
         return math.log10(nb_docs/nb_docs_containing)
     except ValueError:
