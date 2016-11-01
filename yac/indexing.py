@@ -56,6 +56,7 @@ class Index:
 		self._current_doc_index = 0
 		self._doc_limit = 10
 		self._memory_limit = 10
+		self._doc_quantity = 0
 
 		self.dict_file_term = sorteddict()
 		self.dict_term_pl = dict()
@@ -78,7 +79,8 @@ class Index:
 
 		if self.filePathFormat != "":
 			#filling of the Inverted Index
-			for filename in glob.glob(self.filePathFormat):
+			for filename in sorted(glob.glob(self.filePathFormat)):
+				print(filename)
 				lines = open(filename, 'r')
 				self.inv_index = self.create_index_merged_based_from_text(lines)
 			self.read_terms_in_file()
@@ -210,12 +212,10 @@ class Index:
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
+				print(doc_id)
 				if doc_id >= self._current_doc_index:
-
 					self._doc_id_list.append(doc_id)
-					print(self._doc_id_list)
 					self._current_doc_index = doc_id
-					
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
 
 				if len(self._doc_id_list)-nbDoc > 0: 
@@ -253,6 +253,7 @@ class Index:
 		 	and adds it to the self._pl_file_list
 		"""
 		file_name = "fileIndex" + str(time.clock())
+		print(file_name)
 		with open(file_name,"a+") as f:		
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
@@ -261,31 +262,22 @@ class Index:
 				f.write("\n")
 		self._pl_file_list.append(file_name)
 
-	def __read_word_from_index(self,f):
-			if f.tell()==0:	
-				return f.readline()
-			else:
-				f.readline()
-				return f.readline()
-
 
 	def read_terms_from_i_file(self,f,ifilename):
 		pattern_term = r"<?/?\w+"
 		term = f.readline()
-		pl = f.readline()
+		pl = f.readline().rstrip()
 		if len(term) != 0 and not re.match(pattern_term,term):
 			return self.read_terms_from_i_file(f,ifilename)
 		elif len(term) == 0 :
 			return False
 		if term not in self.dict_file_term.keys():
 			self.dict_file_term[term] =sortedlist([ifilename])
-			self.dict_term_pl[term] = self.text_to_pair_list(pl)
+			self.dict_term_pl[term] = [pl]
 		else:
 			(self.dict_file_term[term]).add(ifilename)
-			pair_list=self.text_to_pair_list(pl)
 			index_0 = (self.dict_file_term[term]).index(ifilename)
-			for i in range(len(pair_list)):
-				(self.dict_term_pl[term]).insert(index_0,pair_list[i])
+			(self.dict_term_pl[term]).insert(index_0,pl)
 		return True
 
 
@@ -323,11 +315,16 @@ class Index:
 	def calculate_all_term_pl_scores(self, PL):
 		"""Modify final inverted file to write final score for each doc in eah pl
 		"""
+
 		nb_docs = len(self._doc_id_list)
-		for index in range(len(PL)):
-			(doc_id,scoreTemp) = map(float,PL[index])
-			scoreTemp *= score.inverse_document_frequency(len(PL), nb_docs)
-			PL[index] = (doc_id,scoreTemp)
+		list_pls = []
+		for sring_pls in PL:
+			list_pls = list_pls + self.text_to_pair_list(sring_pls)	
+		for index in range(len(list_pls)):
+				(doc_id,scoreTemp) = map(float,list_pls[index])
+				scoreTemp *= score.inverse_document_frequency(len(list_pls), nb_docs)
+				list_pls[index] = (doc_id,scoreTemp)
+		return list_pls
 
 
 	def save_final_pl_to_file(self,term,PL):
@@ -335,11 +332,13 @@ class Index:
 			PL;PL2;PL3 and so on
 		   It writes each posting list from offsetMin to offsetMax
 		"""
-		self.calculate_all_term_pl_scores(PL)
+		list_pls = self.calculate_all_term_pl_scores(PL)
+		print(list_pls)
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			ifile.writelines(self.pair_list_to_text(PL)+"\n")
+			print(self.pair_list_to_text(list_pls))
+			ifile.writelines(self.pair_list_to_text(list_pls)+"\n")
 			offsetMax=ifile.tell()
 			self.dictTermsOffset[term]=(offsetMin,offsetMax)
 		return True

@@ -103,7 +103,7 @@ if __name__=='__main__':
     start = time.clock()
 
 
-    index = indexing.Index("../latimes/la021*")
+    index = indexing.Index("../latimes/la*")
     index.createIndexFromFileFormat()
     #index.calculate_all_scores_merged_based()
     query = raw_input("Entrez votre recherche disjonctive: ")
