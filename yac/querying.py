@@ -15,15 +15,30 @@ inverted_file = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
 "fishkeepers": {2:1},"found": {1:1},"fresh": {2:1}, "freshwater": {1:1, 4:1},
 "from": {4:1} }
 
-def threshold_algo(inv_index, query_terms, k):
+def text_to_pl(text):
+    """ Transforms a text "doc1,score_doc1;doc2, score_doc2;" to a posting list {doc1:score_doc1, doc2:score_doc2} """
+    pl = {}
+    pair_list = text.rstrip().split(";")[:-1]
+    for index in range(len(pair_list)):
+        pair = pair_list[index].split(",")
+        pl[pair[0]] = float(pair[1])
+    return pl
+
+def threshold_algo(query_terms, k): # index a passer en parametre
+    # offsets remplacer
+    offsets = {"soviet":[0,18], "moscow":[19,38]}
+
+    file = open('InvertedFile_test', 'r+') # nom du fichier a remplacer
     sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
     sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
     terms = [] # Termes de la requete presents dans l'inverted file
     for term in query_terms: # Construction des deux index : tries par document et par score
-        if term in inv_index:
+        if term in offsets:
             terms.append(term)
-            sorted_by_docs[term] = inv_index[term]
-            sorted_by_scores[term] = sorted(sorted_by_docs[term], key=inv_index[term].__getitem__, reverse=True)
+            file.seek(offsets[term][0])
+            text = file.read(offsets[term][1] - offsets[term][0])
+            sorted_by_docs[term] = text_to_pl(text)
+            sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
     t = 1
     smallest_score = 0 # Plus petit score parmis les documents du top-k
     top_k = []
