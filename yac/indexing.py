@@ -317,6 +317,8 @@ class Index:
 		list_pls = []
 		for sring_pls in PL:
 			list_pls = list_pls + self.text_to_pair_list(sring_pls)	
+		list_pls = sorted(list_pls,	key=lambda x: x[0])
+		print(list_pls)
 		for index in range(len(list_pls)):
 				(doc_id,scoreTemp) = map(float,list_pls[index])
 				scoreTemp *= score.inverse_document_frequency(len(list_pls), nb_docs)
