@@ -59,3 +59,13 @@ The inner dictionnary is structured that way : ```{doc_id:score}``` both are int
     print "Resutat recherche disjonctive:"
     dicOfDocs = querying.findDocsDisj(index.inv_index, query) # 4
     querying.sortAndPrintDict(dicOfDocs) # 5
+
+## How do I test it?
+
+You can run all tests by executing this command at project root:
+    python -m unittest discover
+Another way would be running the tests module by module following this format :  ```python -m unittest package.module_name```.
+
+For example, here, we run all tests of the test_indexing module (tests package):
+
+    python -m unittest tests.test_indexing
