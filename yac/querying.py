@@ -15,10 +15,67 @@ invertedFile = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
 "fishkeepers": {2:1},"found": {1:1},"fresh": {2:1}, "freshwater": {1:1, 4:1},
 "from": {4:1} }
 
+def text_to_pl(text):
+    """ Transforms a text "doc1,score_doc1;doc2, score_doc2;" to a posting list {doc1:score_doc1, doc2:score_doc2} """
+    pl = {}
+    pair_list = text.rstrip().split(";")[:-1]
+    for index in range(len(pair_list)):
+        pair = pair_list[index].split(",")
+        pl[pair[0]] = float(pair[1])
+    return pl
+
+def threshold_algo(query_terms, k): # index a passer en parametre
+    # offsets remplacer
+    offsets = {"soviet":[0,18], "moscow":[19,38]}
+
+    file = open('InvertedFile_test', 'r+') # nom du fichier a remplacer
+    sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
+    sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
+    terms = [] # Termes de la requete presents dans l'inverted file
+    for term in query_terms: # Construction des deux index : tries par document et par score
+        if term in offsets:
+            terms.append(term)
+            file.seek(offsets[term][0])
+            text = file.read(offsets[term][1] - offsets[term][0])
+            sorted_by_docs[term] = text_to_pl(text)
+            sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
+    t = 1
+    smallest_score = 0 # Plus petit score parmis les documents du top-k
+    top_k = []
+    docs_met = set()
+    while t > smallest_score: # Iteration sur les documents tries par score
+        t = 0 # Seuil : score maximal atteignable par les documents pas encore etudies
+        for term in terms:
+            if len(sorted_by_scores[term]) > 0:
+                doc = sorted_by_scores[term].pop(0) # Document avec le meilleur score pour ce terme
+                if len(sorted_by_scores[term]) > 0:
+                    t += sorted_by_docs[term][sorted_by_scores[term][0]] # Mise a jour du seuil
+                if not doc in docs_met: # Si c'est la premiere fois qu'on le rencontre
+                    docs_met.add(doc)
+                    score = 0
+                    # Calcul du score du document
+                    for a_term in terms:
+                        if doc in sorted_by_docs[a_term]:
+                            score += sorted_by_docs[a_term][doc]
+                    # Modification eventuelle des top-k documents
+                    #print "Doc " + str(doc) + " has a score of " + str(score)
+                    if len(top_k) < k:
+                        top_k.append((doc, score))
+                        top_k.sort(key=lambda x: x[1])
+                    else:
+                        if score > top_k[0][1]:
+                            top_k.pop(0)
+                            top_k.append((doc, score))
+                            top_k.sort(key=lambda x: x[1])
+                            #print "New top-k :"
+                            #print top_k
+        smallest_score = top_k[0][1]
+        #print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
+    print top_k
 
 
-def getTerms(query, remove_stopwords = False , case_sensitive = False , with_stemming = False):
-    stop_words=stopwords.words('english')
+def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
+    stop_words = stopwords.words('english')
 
     if not case_sensitive:
         query=query.lower()
@@ -50,9 +107,9 @@ def sortAndPrintDict(dict_score):
 
 
 #Token recherche disjonctive ("OU")
-#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document 
+#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document
 def findDocsDisj(invertedFile, query):
-	queryList = getTerms(query)
+	queryList = get_terms(query)
 	request = {}
 	for word in queryList:
 		if word in invertedFile:
@@ -69,15 +126,15 @@ def popSmallestDict(dictList):
     return smallest
 
 #Token recherche conjonctive ("ET")
-#Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document 
+#Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document
 def findDocsConj(invertedFile,query):
-    queryList = getTerms(query)
+    queryList = get_terms(query)
     postingLists = []
     #On recupere les PL de chaque terme
     for word in queryList :
     	if word in invertedFile:
         	postingLists += [invertedFile[word]]
-    
+
 	request = {}
 	last = []
     if len(postingLists)>0:

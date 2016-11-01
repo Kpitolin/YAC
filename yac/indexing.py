@@ -135,7 +135,7 @@ class Index:
 	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
 	def calculate_terms_in_query_scores_memory(self, query):
 
-		for term in score.getTerms(query):
+		for term in score.get_terms(query):
 			#print list(self.inv_index.iteritems())
 			if term in self.inv_index:
 				term_plist = self.inv_index[term]
@@ -144,7 +144,7 @@ class Index:
 
 
 	def createIndexMergedBasedFromText(self, text):
-		""" Creates a merged based index 
+		""" Creates a merged based index
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
 			Hypothesis : we run througth the documents in order so the posting lists are naturally ordered by score
@@ -165,7 +165,7 @@ class Index:
 		nbDoc = 0
 		inv_index = {}
 		for line in lines:
-			
+
 			if nbDoc >= self._doc_limit:
 				break
 			doc = doc + '\n' + line
@@ -178,10 +178,10 @@ class Index:
 
 					self._doc_id_list.append(doc_id)
 					self._current_doc_index = doc_id
-					
+
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
 
-				if len(self._doc_id_list)-nbDoc > 0: 
+				if len(self._doc_id_list)-nbDoc > 0:
 					#if we reached the end of the document, insert tokens in hashmap and flush variables
 					words = tokenization.TextFile.tokenizeStringSplit(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
 					# for the time being, we just calculate the frequency of each term and put it as the score
@@ -207,16 +207,16 @@ class Index:
 		return inv_index
 
 	def saveIndexToFile(self):
-		""" Creates a file following this format : 
-			term 
-			Posting List 
-			term 
+		""" Creates a file following this format :
+			term
+			Posting List
+			term
 			Posting List
 
 		 	and adds it to the self._pl_file_list
 		"""
 		file_name = "IndexFiles/fileIndex" + str(len(self._pl_file_list))
-		with open(file_name,"a+") as f:		
+		with open(file_name,"a+") as f:
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
 				f.write(word+"\n")
@@ -236,5 +236,5 @@ class Index:
 	def saveFinalPLToFile(self):
 		"""Creates a single file for the posting list.
 		   It writes each posting list from offsetMin to offsetMax
-		   It also writes a dic {term : <offsetMin, offsetMax>} 
+		   It also writes a dic {term : <offsetMin, offsetMax>}
 		"""
