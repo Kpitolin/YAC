@@ -80,7 +80,6 @@ class Index:
 		if self.filePathFormat != "":
 			#filling of the Inverted Index
 			for filename in sorted(glob.glob(self.filePathFormat)):
-				print(filename)
 				lines = open(filename, 'r')
 				self.inv_index = self.create_index_merged_based_from_text(lines)
 			self.read_terms_in_file()
@@ -212,7 +211,6 @@ class Index:
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
-				print(doc_id)
 				if doc_id >= self._current_doc_index:
 					self._doc_id_list.append(doc_id)
 					self._current_doc_index = doc_id
@@ -253,7 +251,6 @@ class Index:
 		 	and adds it to the self._pl_file_list
 		"""
 		file_name = "fileIndex" + str(time.clock())
-		print(file_name)
 		with open(file_name,"a+") as f:		
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
@@ -333,11 +330,9 @@ class Index:
 		   It writes each posting list from offsetMin to offsetMax
 		"""
 		list_pls = self.calculate_all_term_pl_scores(PL)
-		print(list_pls)
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			offsetMin=ifile.tell()
-			print(self.pair_list_to_text(list_pls))
 			ifile.writelines(self.pair_list_to_text(list_pls)+"\n")
 			offsetMax=ifile.tell()
 			self.dictTermsOffset[term]=(offsetMin,offsetMax)
