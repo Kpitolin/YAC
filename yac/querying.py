@@ -101,15 +101,13 @@ if __name__=='__main__':
     #Prompt for query terms
     #Here specify the location of the textfiles to search upon
     start = time.clock()
-
-
-    index = indexing.Index("../latimes/la021*")
+    index = indexing.Index("../../../latimes/la010189")
     index.createIndexFromFileFormat()
     #index.calculate_all_scores_merged_based()
-    query = raw_input("Entrez votre recherche disjonctive: ")
-    print "Resutat recherche disjonctive:"
-    dicOfDocs = findDocsDisj(index.inv_index, query)
-    sortAndPrintDict(dicOfDocs)
+    #query = raw_input("Entrez votre recherche disjonctive: ")
+    #print "Resutat recherche disjonctive:"
+    #dicOfDocs = findDocsDisj(index.inv_index, query)
+    #sortAndPrintDict(dicOfDocs)
     end = time.clock()
 
     print "Elapsed Time: {} seconds".format(end - start)

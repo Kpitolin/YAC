@@ -198,15 +198,10 @@ class IndexingTestCase(unittest.TestCase):
 		<DOC>
 		<DOCID> 1 </DOCID>
 		The onset of "the new Gorbachev".
-		</DOC>
-		<DOC>
-		<DOCID> 2 </DOCID>
-		the onset of "the new Gorbachev"!
 		</DOC>"""
 
 		index = indexing.Index() 
 
-		index._doc_limit = 1
 		partial_index = index.create_index_merged_based_from_text(stringNormalDoc)
 		self.assertNotEqual(index._pl_file_list, [])
 		resultingTextFile = "1\n1,0.0909090909091;\n</doc>\n1,0.0909090909091;\n</docid>\n1,0.0909090909091;\n<doc>\n1,0.0909090909091;\n<docid>\n1,0.0909090909091;\ngorbachev\n1,0.0909090909091;\nnew\n1,0.0909090909091;\nof\n1,0.0909090909091;\nonset\n1,0.0909090909091;\nthe\n1,0.181818181818;\n"

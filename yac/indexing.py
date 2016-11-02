@@ -54,7 +54,7 @@ class Index:
 		self._doc_id_list = []
 		self._pl_file_list = []
 		self._current_doc_index = 0
-		self._doc_limit = 10
+		self._doc_limit = 100
 		self._memory_limit = 10
 
 		self.dict_file_term = sorteddict()
@@ -81,6 +81,7 @@ class Index:
 			for filename in glob.glob(self.filePathFormat):
 				lines = open(filename, 'r')
 				self.inv_index = self.create_index_merged_based_from_text(lines)
+				self._current_doc_index = 0 # the documents are not ordered by doc id => if we don't do this we'll skip some documents
 			self.read_terms_in_file()
 
 		return self.inv_index
@@ -154,6 +155,7 @@ class Index:
 		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
 		"""
 		lines =[]
+		pair_list =[]
 		#textfile
 		if hasattr(text, 'readlines'):
 			lines = text
@@ -178,18 +180,17 @@ class Index:
 					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
-	def create_index_merged_based_from_text(self, text):
+	def create_index_merged_based_from_text(self, text, old_doc_id=None):
 		""" Creates a merged based index 
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
-			Hypothesis : we run througth the documents in order so the posting lists are naturally ordered by score
+			Warning : the number of docs in the file must be > self._doc_limit 
 		"""
-
 
 		doc_id = ''
 		doc = ''
 		lines = []
-
+		local_doc_id_list = []
 		#textfile
 		if hasattr(text, 'readlines'):
 			lines = text
@@ -197,12 +198,17 @@ class Index:
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
 
+		#print lines
 		nbDoc = 0
 		self.inv_index = {}
+
+		if self._doc_limit == 0:
+			return self.inv_index
+
 		for line in lines:
-			
-			if nbDoc >= self._doc_limit:
+			if nbDoc >= self._doc_limit: # if we reached the limit of documents per file
 				self.save_index_to_file()
+				self.create_index_merged_based_from_text(text,self._current_doc_index)
 				break
 			doc = doc + '\n' + line
 			match = re.search(PATTERN_DOC_ID, line)
@@ -210,15 +216,16 @@ class Index:
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
-				if doc_id >= self._current_doc_index:
 
+				if doc_id >= self._current_doc_index:
+					local_doc_id_list.append(doc_id)
 					self._doc_id_list.append(doc_id)
-					print(self._doc_id_list)
+					#print(self._doc_id_list)
 					self._current_doc_index = doc_id
 					
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
-
-				if len(self._doc_id_list)-nbDoc > 0: 
+				
+				if len(local_doc_id_list)-nbDoc > 0: 
 					#if we reached the end of the document, insert tokens in hashmap and flush variables
 					words = tokenization.TextFile.tokenizeStringSplit(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
 					# for the time being, we just calculate the frequency of each term and put it as the score
@@ -241,6 +248,10 @@ class Index:
 				# flush variables before passing to the next document
 				doc = ''
 				del doc_id
+		# if the nb of docs is not a factor of the _doc_limit, we save the rest of the docs
+		if len(local_doc_id_list) > 0 and len(local_doc_id_list) < self._doc_limit:
+			self.save_index_to_file()
+
 		return self.inv_index
 
 	def save_index_to_file(self):
@@ -259,7 +270,9 @@ class Index:
 				f.write(word+"\n")
 				f.write(self.pair_list_to_text(self.inv_index[word]))
 				f.write("\n")
-		self._pl_file_list.append(file_name)
+		
+		if len(sortedIndex)>0:
+			self._pl_file_list.append(file_name)
 
 	def __read_word_from_index(self,f):
 			if f.tell()==0:	
@@ -301,17 +314,20 @@ class Index:
 		dictFile = {}
 		#fileFinished=list()#
 		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-		for ifilename in  self._pl_file_list :
+		for ifilename in self._pl_file_list :
 			dictFile[ifilename] = open(ifilename, "r");
 			self.read_terms_from_i_file(dictFile[ifilename],ifilename)
 		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
 		while bool(self.dict_file_term): 
 		#for num in range(10,20):
-			element = self.dict_file_term.popitem() # return the pair <term, filename> with the lowest key (sorteddict)
+			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
 			pl=self.dict_term_pl[element[0]]
+			#dictFile[ifilename]
+			#dictFile[ifilename].close()
 			if(self.save_final_pl_to_file(element[0],pl)):
 				for ifilename in element[1]:
 					if(self.read_terms_from_i_file(dictFile[ifilename],ifilename) == False):
+						print "finished reading file"
 						dictFile[ifilename].close()
 						del dictFile[ifilename]
 			else:
