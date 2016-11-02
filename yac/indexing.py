@@ -336,7 +336,6 @@ class Index:
 		for sring_pls in PL:
 			list_pls = list_pls + self.text_to_pair_list(sring_pls)	
 		list_pls = sorted(list_pls,	key=lambda x: x[0])
-
 		for index in range(len(list_pls)):
 				(doc_id,scoreTemp) = map(float,list_pls[index])
 				scoreTemp *= score.inverse_document_frequency(len(list_pls), nb_docs)
@@ -350,9 +349,6 @@ class Index:
 		   It writes each posting list from offsetMin to offsetMax
 		"""
 		list_pls = self.calculate_all_term_pl_scores(PL)
-		if(term.rstrip() == "and"):
-			print(term)
-		print(list_pls)
 		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			ifile.write(self.pair_list_to_text(list_pls)+"\n")

@@ -111,13 +111,16 @@ if __name__=='__main__':
 	start = time.clock()
 
 
-	index = indexing.Index("../latimes/la010189")
+	index = indexing.Index("../latimes/la01*")
 	index.createIndexFromFileFormat()
 	#index.calculate_all_scores_merged_based()
 	query = raw_input("Entrez votre recherche disjonctive: ")
-	print "Resutat recherche disjonctive:"
-	dicOfDocs = findDocsDisj(index, query)
-	sortAndPrintDict(dicOfDocs)
+
+	while(query != "exit"):
+		print "Resutat recherche disjonctive:"
+		dicOfDocs = findDocsDisj(index, query)
+		sortAndPrintDict(dicOfDocs)
+		query = raw_input("Entrez votre recherche disjonctive: ")
 	end = time.clock()
 
 	print "Elapsed Time: {} seconds".format(end - start)
