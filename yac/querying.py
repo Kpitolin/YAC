@@ -1,6 +1,7 @@
 """ this file define a mock of an inverted file and a simple querying algorithm """
 import time
 import re
+import linecache
 import indexing, tokenization
 from sys import argv
 from nltk.corpus import stopwords
@@ -26,17 +27,15 @@ def text_to_pl(text):
 
 def threshold_algo(query_terms, k): # index a passer en parametre
     # offsets remplacer
-    offsets = {"soviet":[0,18], "moscow":[19,38]}
+    offsets = {"soviet":1, "moscow":2}
 
-    file = open('InvertedFile_test', 'r+') # nom du fichier a remplacer
     sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
     sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
     terms = [] # Termes de la requete presents dans l'inverted file
     for term in query_terms: # Construction des deux index : tries par document et par score
         if term in offsets:
             terms.append(term)
-            file.seek(offsets[term][0])
-            text = file.read(offsets[term][1] - offsets[term][0])
+            text = linecache.getline('InvertedFile_test', offsets[term])
             sorted_by_docs[term] = text_to_pl(text)
             sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
     t = 1
