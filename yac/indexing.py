@@ -65,7 +65,7 @@ class Index:
 		self.dictTermsOffset=dict()
 
 
-	def createIndexFromFileFormat(self):
+	def create_index_from_file_format_merged_based(self):
 		"""Creates the Inverted Index for a file or multiple file of the same format
 		For now, the score is just the frequency of the term in the document
 
@@ -85,6 +85,26 @@ class Index:
 				self.inv_index = self.create_index_merged_based_from_text(lines)
 				self._current_doc_index = 0 # the documents are not ordered by doc id => if we don't do this we'll skip some documents
 			self.read_terms_in_file()
+
+
+	def create_index_from_file_format_memory(self):
+		"""Creates the Inverted Index for a file or multiple file of the same format
+		For now, the score is just the frequency of the term in the document
+
+
+		Usage for every file starting with la (outside of this module):
+		inv_index = indexing.Index("../../../../Downloads/latimes/la*").createIndexFromFileFormat()
+
+		Usage for a file
+		inv_index = indexing.Index("../../../../Downloads/latimes/la010189").createIndexFromFileFormat()
+
+		"""
+
+		if self.filePathFormat != "":
+			#filling of the Inverted Index
+			for filename in sorted(glob.glob(self.filePathFormat)):
+				lines = open(filename, 'r')
+				self.inv_index = self.createIndexFromText(lines)
 
 		return self.inv_index
 
@@ -117,7 +137,7 @@ class Index:
 			elif re.search(PATTERN_DOC_END, line) and doc != '' and doc_id != '':
 				#if we reached the end of the document, insert tokens in hashmap and flush variables
 
-				words = tokenization.TextFile.tokenizeStringSplit(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
+				words = tokenization.TextFile.tokenize_string_split(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
 
 				# for the time being, we just calculate the frequency of each term and put it as the score
 				# avoid ZeroDivisionError
@@ -197,7 +217,7 @@ class Index:
 	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
 	def calculate_terms_in_query_scores_memory(self, query):
 
-		for term in score.getTerms(query):
+		for term in score.get_terms(query):
 			#print list(self.inv_index.iteritems())
 			if term in self.inv_index:
 				term_plist = self.inv_index[term]
@@ -205,8 +225,10 @@ class Index:
 					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 
+
 	def create_index_merged_based_from_text(self, text, old_doc_id=None):
 		""" Creates a merged based index 
+
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
 			Warning : the number of docs in the file must be > self._doc_limit 
@@ -246,11 +268,12 @@ class Index:
 					self._doc_id_list.append(doc_id)
 					#print(self._doc_id_list)
 					self._current_doc_index = doc_id
+
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
 				
 				if len(local_doc_id_list)-nbDoc > 0: 
 					#if we reached the end of the document, insert tokens in hashmap and flush variables
-					words = tokenization.TextFile.tokenizeStringSplit(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
+					words = tokenization.TextFile.tokenize_string_split(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
 					# for the time being, we just calculate the frequency of each term and put it as the score
 					# avoid ZeroDivisionError
 					if len(words) > 0:
@@ -274,7 +297,6 @@ class Index:
 		# if the nb of docs is not a factor of the _doc_limit, we save the rest of the docs
 		if len(local_doc_id_list) > 0 and len(local_doc_id_list) < self._doc_limit:
 			self.save_index_to_file()
-
 		return self.inv_index
 
 	def save_index_to_file(self):
@@ -286,6 +308,7 @@ class Index:
 
 		 	and adds it to the self._pl_file_list
 		"""
+
 		file_name = "fileIndex" + str(time.clock())
 		with open(file_name,"a+") as f:		
 			sortedIndex = sorted(self.inv_index)
@@ -370,9 +393,12 @@ class Index:
 		"""Creates a single file for the posting lists. format : 
 			PL;PL2;PL3 and so on
 		   It writes each posting list from offsetMin to offsetMax
+		   It also writes a dic {term : <offsetMin, offsetMax>}
+
 		"""
 		list_pls = self.calculate_all_term_pl_scores(PL)
-		with open('InvertedFile', "a+") as ifile:
+
+		with open('InvertedFile1', "a+") as ifile:
 			#ifile.write(term+"\n")
 			ifile.write(self.pair_list_to_text(list_pls)+"\n")
 			self.dictTermsOffset[term.rstrip()]=self.offset
@@ -383,7 +409,7 @@ class Index:
 		""" Saves the nb of docs to file
 		It also writes a dic {term : <offsetMin, offsetMax>} 
 		"""
-		with open('ExtraFile', "w") as ifile:
+		with open('ExtraFile1', "w") as ifile:
 			ifile.write(self.dict_to_text(self.dictTermsOffset))
 
 
