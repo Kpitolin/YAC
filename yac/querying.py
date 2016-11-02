@@ -29,8 +29,6 @@ def threshold_algo(index, query, k): # index a passer en parametre
     query_terms  = get_terms(query)
     for term in query_terms: # Construction des deux index : tries par document et par score
         if term in index.dictTermsOffset:
-            print index.dictTermsOffset[term]
-            print term
             terms.append(term)
             text = linecache.getline('InvertedFile', index.dictTermsOffset[term])
             sorted_by_docs[term] = text_to_pl(text)
@@ -106,17 +104,15 @@ def sortAndPrintDict(dict_score):
 
 #Token recherche disjonctive ("OU")
 
-#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document 
+#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document
 def findDocsDisjMergedBased(index, query):
 
 	queryList = get_terms(query)
 	response = {}
 	for word in queryList:
 		if word in index.dictTermsOffset:
-			print index.dictTermsOffset[word]
 			offset = index.dictTermsOffset[word]
-			print(offset)
-			line = linecache.getline("InvertedFile1", offset)
+			line = linecache.getline("InvertedFile", offset)
 			pl = index.text_to_pair_list(line)
 			for doc,score in pl:
 				if(doc in response):
@@ -159,7 +155,7 @@ def findDocsConj(index,query):
 			line = linecache.getline("InvertedFile1", offset)
 			pl = index.text_to_pair_list(line)
 			postingLists += pl
-	
+
 	request = {}
 	last = []
 	if len(postingLists)>0:
@@ -191,15 +187,17 @@ if __name__=='__main__':
 
 	#Prompt for query terms
 	#Here specify the location of the textfiles to search upon
-	start = time.clock()
-	if os.path.isfile("ExtraFile1") == True : 
-		index = indexing.Index()
-		index.extra_file_handler()
-	else : 
-		index = indexing.Index("../latimes/la010189")
-		index.create_index_from_file_format_merged_based()
-	query = raw_input("Entrez votre recherche disjonctive: ")
+    if os.path.isfile("ExtraFile") == True:
+        index = indexing.Index()
+        index.extra_file_handler()
+    else:
+        start = time.clock()
+        index = indexing.Index("../../latimes/la*89")
+        index.create_index_from_file_format_merged_based()
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end - start)
 
+	query = raw_input("Entrez votre recherche : ")
 	while(query != "exit"):
 		print "Resutat recherche disjonctive:"
 		print "requetage naif"
@@ -210,9 +208,9 @@ if __name__=='__main__':
 		print "requetage faggins"
 
 		threshold_algo(index, query,10)
-		
-		query = raw_input("Entrez votre recherche disjonctive: ")
-	print "Elapsed Time: {} seconds".format(end - start)
+
+		query = raw_input("Entrez votre recherche : ")
+
 
 
 	#Token recherche conjonctive ("ET")

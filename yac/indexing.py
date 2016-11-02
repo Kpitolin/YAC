@@ -165,7 +165,7 @@ class Index:
 	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
 
 	def pair_list_to_text(self,pl):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
 			docId, Score;  docId, Score;
 		"""
 		text = ""
@@ -174,7 +174,7 @@ class Index:
 		return text
 
 	def dict_to_text(self,pl):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
 			docId, Score;  docId, Score;
 		"""
 		text = ""
@@ -183,7 +183,7 @@ class Index:
 		return text
 
 	def extra_file_handler(self):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
 			docId, Score;  docId, Score;
 		"""
 		with open('ExtraFile', "r") as f:
@@ -194,7 +194,7 @@ class Index:
 				pair = tuple_list[index].split(",")
 				self.dictTermsOffset[pair[0]] = int(pair[1])
 
-	
+
 
 	def text_to_pair_list(self, text):
 		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
@@ -227,11 +227,11 @@ class Index:
 
 
 	def create_index_merged_based_from_text(self, text, old_doc_id=None):
-		""" Creates a merged based index 
+		""" Creates a merged based index
 
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
-			Warning : the number of docs in the file must be > self._doc_limit 
+			Warning : the number of docs in the file must be > self._doc_limit
 		"""
 
 		doc_id = ''
@@ -270,8 +270,8 @@ class Index:
 					self._current_doc_index = doc_id
 
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
-				
-				if len(local_doc_id_list)-nbDoc > 0: 
+
+				if len(local_doc_id_list)-nbDoc > 0:
 					#if we reached the end of the document, insert tokens in hashmap and flush variables
 					words = tokenization.TextFile.tokenize_string_split(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
 					# for the time being, we just calculate the frequency of each term and put it as the score
@@ -300,23 +300,23 @@ class Index:
 		return self.inv_index
 
 	def save_index_to_file(self):
-		""" Creates a file following this format : 
-			term 
-			Posting List 
-			term 
+		""" Creates a file following this format :
+			term
+			Posting List
+			term
 			Posting List
 
 		 	and adds it to the self._pl_file_list
 		"""
 
 		file_name = "fileIndex" + str(time.clock())
-		with open(file_name,"a+") as f:		
+		with open(file_name,"a+") as f:
 			sortedIndex = sorted(self.inv_index)
 			for word in sortedIndex :
 				f.write(word+"\n")
 				f.write(self.pair_list_to_text(self.inv_index[word]))
 				f.write("\n")
-		
+
 		if len(sortedIndex)>0:
 			self._pl_file_list.append(file_name)
 
@@ -355,7 +355,7 @@ class Index:
 			dictFile[ifilename] = open(ifilename, "r");
 			self.read_terms_from_i_file(dictFile[ifilename],ifilename)
 		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
-		while bool(self.dict_file_term): 
+		while bool(self.dict_file_term):
 		#for num in range(10,20):
 			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
 			pl=self.dict_term_pl[element[0]]
@@ -364,7 +364,6 @@ class Index:
 			if(self.save_final_pl_to_file(element[0],pl)):
 				for ifilename in element[1]:
 					if(self.read_terms_from_i_file(dictFile[ifilename],ifilename) == False):
-						print "finished reading file"
 						dictFile[ifilename].close()
 						del dictFile[ifilename]
 			else:
@@ -380,7 +379,7 @@ class Index:
 		nb_docs = len(self._doc_id_list)
 		list_pls = []
 		for sring_pls in PL:
-			list_pls = list_pls + self.text_to_pair_list(sring_pls)	
+			list_pls = list_pls + self.text_to_pair_list(sring_pls)
 		list_pls = sorted(list_pls,	key=lambda x: x[0])
 		for index in range(len(list_pls)):
 				(doc_id,scoreTemp) = map(float,list_pls[index])
@@ -390,7 +389,7 @@ class Index:
 
 
 	def save_final_pl_to_file(self,term,PL):
-		"""Creates a single file for the posting lists. format : 
+		"""Creates a single file for the posting lists. format :
 			PL;PL2;PL3 and so on
 		   It writes each posting list from offsetMin to offsetMax
 		   It also writes a dic {term : <offsetMin, offsetMax>}
@@ -398,7 +397,7 @@ class Index:
 		"""
 		list_pls = self.calculate_all_term_pl_scores(PL)
 
-		with open('InvertedFile1', "a+") as ifile:
+		with open('InvertedFile', "a+") as ifile:
 			#ifile.write(term+"\n")
 			ifile.write(self.pair_list_to_text(list_pls)+"\n")
 			self.dictTermsOffset[term.rstrip()]=self.offset
@@ -407,9 +406,7 @@ class Index:
 
 	def save_extra_file(self):
 		""" Saves the nb of docs to file
-		It also writes a dic {term : <offsetMin, offsetMax>} 
+		It also writes a dic {term : <offsetMin, offsetMax>}
 		"""
-		with open('ExtraFile1', "w") as ifile:
+		with open('ExtraFile', "w") as ifile:
 			ifile.write(self.dict_to_text(self.dictTermsOffset))
-
-
