@@ -8,13 +8,6 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 porter_stemmer = PorterStemmer()
 
-#inverted file
-invertedFile = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
-"around": {1:1}, "as": {2:1},"both": {1:1},
-"bright": {3:1},"coloration": {3:1, 4:1},"derives": {4:1},
-"due": {3:1},"environements": {1:1},"fish": {1:2, 2:3, 3:2, 4:7},
-"fishkeepers": {2:1},"found": {1:1},"fresh": {2:1}, "freshwater": {1:1, 4:1},
-"from": {4:1} }
 
 def text_to_pl(text):
     """ Transforms a text "doc1,score_doc1;doc2, score_doc2;" to a posting list {doc1:score_doc1, doc2:score_doc2} """
@@ -25,24 +18,28 @@ def text_to_pl(text):
         pl[pair[0]] = float(pair[1])
     return pl
 
-def threshold_algo(query_terms, k): # index a passer en parametre
+def threshold_algo(index, query, k): # index a passer en parametre
     # offsets remplacer
-    offsets = {"soviet":1, "moscow":2}
+    #offsets = {"soviet":1, "moscow":2}
 
     sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
     sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
     terms = [] # Termes de la requete presents dans l'inverted file
+    query_terms  = get_terms(query)
     for term in query_terms: # Construction des deux index : tries par document et par score
-        if term in offsets:
+        if term in index.dictTermsOffset:
+            print index.dictTermsOffset[term]
+            print term
             terms.append(term)
-            text = linecache.getline('InvertedFile_test', offsets[term])
+            text = linecache.getline('InvertedFile', index.dictTermsOffset[term])
             sorted_by_docs[term] = text_to_pl(text)
             sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
     t = 1
     smallest_score = 0 # Plus petit score parmis les documents du top-k
     top_k = []
     docs_met = set()
-    while t > smallest_score: # Iteration sur les documents tries par score
+    # TODO :  check if k < nb docs
+    while t > smallest_score or len(top_k)<k: # Iteration sur les documents tries par score
         t = 0 # Seuil : score maximal atteignable par les documents pas encore etudies
         for term in terms:
             if len(sorted_by_scores[term]) > 0:
@@ -87,10 +84,11 @@ def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming
         terms=words
     return terms
 
+
 #Return a list of the doc ids sorted by score
 def sort(dict_score):
-    sortedList = sorted(dict_score, key=dict_score.__getitem__, reverse=True)
-    return sortedList
+	sortedList = sorted(dict_score, key=dict_score.__getitem__, reverse=True)
+	return sortedList
 
 #Prints a list of pairs {doc id: score} already sorted by score (DESC)
 def printDocOrderedByScores(dict_score,sortedList):
@@ -101,55 +99,81 @@ def printDocOrderedByScores(dict_score,sortedList):
 
 #Orders by score (DESC) and prints a list of pairs {doc id: score}
 def sortAndPrintDict(dict_score):
-    sortedList = sort(dict_score)
-    printDocOrderedByScores(dict_score, sortedList)
+	sortedList = sort(dict_score)
+	printDocOrderedByScores(dict_score, sortedList)
+
+
+#Token recherche disjonctive ("OU")
+
+#Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document 
+def findDocsDisjMergedBased(index, query):
+
+	queryList = get_terms(query)
+	response = {}
+	for word in queryList:
+		if word in index.dictTermsOffset:
+			print index.dictTermsOffset[word]
+			offset = index.dictTermsOffset[word]
+			line = linecache.getline("InvertedFile", offset)
+			pl = index.text_to_pair_list(line)
+			for doc,score in pl:
+				if(doc in response):
+					response[doc] += score
+				else:
+					response[doc] = score
+	return response
 
 
 #Token recherche disjonctive ("OU")
 #Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document
-def findDocsDisj(invertedFile, query):
-	queryList = get_terms(query)
-	request = {}
-	for word in queryList:
-		if word in invertedFile:
-        		for doc in invertedFile[word]:
-        			if(doc in request):
-        				request[doc] += invertedFile[word][doc]
-        			else:
-        				request[doc] = invertedFile[word][doc]
-	return request
+def findDocsDisjMemory(invertedFile, query):
+    queryList = get_terms(query)
+    request = {}
+    for word in queryList:
+        if word in invertedFile:
+                for doc in invertedFile[word]:
+                    if(doc in request):
+                        request[doc] += invertedFile[word][doc]
+                    else:
+                        request[doc] = invertedFile[word][doc]
+    return request
+
 
 def popSmallestDict(dictList):
-    smallest = min(dictList)
-    dictList.remove(smallest)
-    return smallest
+	smallest = min(dictList)
+	dictList.remove(smallest)
+	return smallest
 
 #Token recherche conjonctive ("ET")
 #Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document
-def findDocsConj(invertedFile,query):
-    queryList = get_terms(query)
-    postingLists = []
-    #On recupere les PL de chaque terme
-    for word in queryList :
-    	if word in invertedFile:
-        	postingLists += [invertedFile[word]]
+def findDocsConj(index,query):
 
+	queryList = getTerms(query)
+	postingLists = []
+	#On recupere les PL de chaque terme
+	for word in queryList:
+		if word in index.dictTermsOffset:
+			offset = index.dictTermsOffset[word]
+			line = linecache.getline("InvertedFile", offset)
+			pl = index.text_to_pair_list(line)
+			postingLists += pl
+	
 	request = {}
 	last = []
-    if len(postingLists)>0:
-    	last = postingLists.pop()
+	if len(postingLists)>0:
+		last = postingLists.pop()
 
-    for doc in last : #Boucle sur les clefs dans results
-        doc_score = last[doc]
-        for PL in postingLists :
-            if PL.has_key(doc) :
-                doc_score += PL[doc]
-            else :
-                doc_score = 0
-                break
-        if doc_score != 0 :
-            request[doc] = doc_score
-    return request
+	print(last)
+	for doc0, score0 in last : #Boucle sur les clefs dans results
+		for doc,score in postingLists :
+			if doc == doc :
+				doc_score += PL[doc]
+			else :
+				doc_score = 0
+				break
+		if doc_score != 0 :
+			request[doc0] = doc_score
+	return response
 
 def findDocsSortedByScoreDisj(invertedFile,query):
 	nonSortedDict = findDocsDisj(invertedFile,query)
@@ -163,23 +187,31 @@ def findDocsSortedByScoreConj(invertedFile,query):
 	return (sortedDict, nonSortedDict)
 
 if __name__=='__main__':
-    #Prompt for query terms
-    #Here specify the location of the textfiles to search upon
-    start = time.clock()
+
+	#Prompt for query terms
+	#Here specify the location of the textfiles to search upon
+	start = time.clock()
+	index = indexing.Index("../../../latimes/la010189")
+	#inv_index = index.create_index_from_file_format_memory()
+	index.create_index_from_file_format_merged_based()
+	query = raw_input("Entrez votre recherche disjonctive: ")
+	print index.dictTermsOffset[query]
+
+	print "Resutat recherche disjonctive:"
+	print "requetage naif"
+
+	dicOfDocs = findDocsDisjMergedBased(index, query)
+	sortAndPrintDict(dicOfDocs)
+
+	print "requetage faggins"
+
+	threshold_algo(index, query,10)
+	#dicOfDocs = findDocsDisjMemory(inv_index, query)
+	end = time.clock()
+
+	print "Elapsed Time: {} seconds".format(end - start)
 
 
-    index = indexing.Index("../latimes/la021*")
-    index.createIndexFromFileFormat()
-    index.calculate_all_scores_memory()
-    query = raw_input("Entrez votre recherche disjonctive: ")
-    print "Resutat recherche disjonctive:"
-    dicOfDocs = findDocsDisj(index.inv_index, query)
-    sortAndPrintDict(dicOfDocs)
-    end = time.clock()
-
-    print "Elapsed Time: {} seconds".format(end - start)
-
-
-    #Token recherche conjonctive ("ET")
-    #query = raw_input("Entrez votre recherche disjonctive: ")
-    #findDocsSortedByScoreConj(invertedFile,query)
+	#Token recherche conjonctive ("ET")
+	#query = raw_input("Entrez votre recherche disjonctive: ")
+	#findDocsSortedByScoreConj(invertedFile,query)
