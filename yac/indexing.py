@@ -153,6 +153,29 @@ class Index:
 			text = text + str(item1)+","+ str(item2)+";"
 		return text
 
+	def dict_to_text(self,pl):
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+			docId, Score;  docId, Score;
+		"""
+		text = ""
+		for item1, item2 in pl.iteritems():
+			text = text + str(item1)+","+ str(item2)+";"
+		return text
+
+	def extra_file_handler(self):
+		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons : 
+			docId, Score;  docId, Score;
+		"""
+		with open('ExtraFile', "r") as f:
+			text = f.readline()
+			dictOffset ={}
+			tuple_list = text.rstrip().split(";")[:-1]
+			for index in range(len(tuple_list)):
+				pair = tuple_list[index].split(",")
+				self.dictTermsOffset[pair[0]] = int(pair[1])
+
+	
+
 	def text_to_pair_list(self, text):
 		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
 		"""
@@ -361,7 +384,6 @@ class Index:
 		It also writes a dic {term : <offsetMin, offsetMax>} 
 		"""
 		with open('ExtraFile', "w") as ifile:
-			ifile.write("{}\n".format(len(self._doc_id_list))) #todo once
-			#ifile.write(self.pair_list_to_text(self.dictTermsOffset))
+			ifile.write(self.dict_to_text(self.dictTermsOffset))
 
 

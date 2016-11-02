@@ -3,6 +3,7 @@ import time
 import re
 import linecache
 import indexing, tokenization
+import os.path
 from sys import argv
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
@@ -49,6 +50,7 @@ def findDocsDisj(index, query):
 	for word in queryList:
 		if word in index.dictTermsOffset:
 			offset = index.dictTermsOffset[word]
+			print(offset)
 			line = linecache.getline("InvertedFile", offset)
 			pl = index.text_to_pair_list(line)
 			for doc,score in pl:
@@ -81,7 +83,6 @@ def findDocsConj(invertedFile,query):
 	if len(postingLists)>0:
 		last = postingLists.pop()
 
-	print(last)
 	for doc0, score0 in last : #Boucle sur les clefs dans results
 		for doc,score in postingLists :
 			if doc == doc :
@@ -110,10 +111,12 @@ if __name__=='__main__':
 	#Here specify the location of the textfiles to search upon
 	start = time.clock()
 
-
-	index = indexing.Index("../latimes/la01*")
-	index.createIndexFromFileFormat()
-	#index.calculate_all_scores_merged_based()
+	if os.path.isfile("ExtraFile") == True : 
+		index = indexing.Index()
+		index.extra_file_handler()
+	else : 
+		index = indexing.Index("../latimes/la010189")
+		index.createIndexFromFileFormat()
 	query = raw_input("Entrez votre recherche disjonctive: ")
 
 	while(query != "exit"):
