@@ -196,7 +196,19 @@ if __name__=='__main__':
         index.create_index_from_file_format_merged_based()
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
+    query = raw_input("Entrez votre recherche : ")
+    while(query != "exit"):
+        print "Resutat recherche disjonctive:"
+        print "requetage naif"
 
+        dicOfDocs = findDocsDisjMergedBased(index, query)
+        sortAndPrintDict(dicOfDocs)
+
+        print "requetage faggins"
+
+        threshold_algo(index, query,10)
+
+        query = raw_input("Entrez votre recherche : ")
 
 
 
