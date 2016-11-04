@@ -187,7 +187,7 @@ if __name__=='__main__':
 
 	#Prompt for query terms
 	#Here specify the location of the textfiles to search upon
-    if os.path.isfile("ExtraFile") == True:
+    if os.path.isfile("ExtraFile") == True and os.path.isfile("InvertedFile") == True:
         index = indexing.Index()
         index.extra_file_handler()
     else:
@@ -197,19 +197,7 @@ if __name__=='__main__':
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
 
-    query = raw_input("Entrez votre recherche : ")
-    while(query != "exit"):
-        print "Resutat recherche disjonctive:"
-        print "requetage naif"
 
-        dicOfDocs = findDocsDisjMergedBased(index, query)
-        sortAndPrintDict(dicOfDocs)
-
-        print "requetage faggins"
-
-        threshold_algo(index, query,10)
-
-        query = raw_input("Entrez votre recherche : ")
 
 
 

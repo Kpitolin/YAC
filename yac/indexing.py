@@ -84,7 +84,7 @@ class Index:
 				lines = open(filename, 'r')
 				self.inv_index = self.create_index_merged_based_from_text(lines)
 				self._current_doc_index = 0 # the documents are not ordered by doc id => if we don't do this we'll skip some documents
-			self.read_terms_in_file()
+			self.read_terms_in_file_line_dic()
 
 
 	def create_index_from_file_format_memory(self):
@@ -336,8 +336,26 @@ class Index:
 			(self.dict_file_term[term]).add(ifilename)
 			index_0 = (self.dict_file_term[term]).index(ifilename)
 			(self.dict_term_pl[term]).insert(index_0,pl)
+		return True
+
+	def read_terms_from_i_file_with_line_deleting(self,f,ifilename):
+		pattern_term = r"-?<?/?\w+"
+		term = f.readline()
+		pl = f.readline().rstrip()
+		if len(term) != 0 and not re.match(pattern_term,term):
+			return self.read_terms_from_i_file_with_line_deleting(f,ifilename) # if we didn't find a term, we try again until end of file 
+		elif len(term) == 0 :
+			return False
+		if term not in self.dict_file_term.keys():
+			self.dict_file_term[term] =sortedlist([ifilename])
+			self.dict_term_pl[term] = [pl]
+		else:
+			(self.dict_file_term[term]).add(ifilename)
+			index_0 = (self.dict_file_term[term]).index(ifilename)
+			(self.dict_term_pl[term]).insert(index_0,pl)
 		self.remove_lines_from_last_cursor_position(f) # we remove the two lines we just read
 		return True
+
 
 	def remove_lines_from_file_start(self,file_object,nb_lines_to_remove):
 		"""
@@ -378,7 +396,7 @@ class Index:
 		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
 		for ifilename in self._pl_file_list :
 			dictFile[ifilename] = open(ifilename, "r+");
-			self.read_terms_from_i_file(dictFile[ifilename],ifilename)
+			self.read_terms_from_i_file_with_line_deleting(dictFile[ifilename],ifilename)
 		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
 		while bool(self.dict_file_term):
 			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
@@ -386,14 +404,48 @@ class Index:
 			if(self.save_final_pl_to_file(element[0],pl)):
 				for ifilename in element[1]:
 					dictFile[ifilename] = open(ifilename, "r+")
-					if(self.read_terms_from_i_file(dictFile[ifilename],ifilename) == False):
-						dictFile[ifilename].close()
+					if(self.read_terms_from_i_file_with_line_deleting(dictFile[ifilename],ifilename) == False):
+						#dictFile[ifilename].close()
 						del dictFile[ifilename]
 			else:
 				return False
 		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
 		self.save_extra_file()
 
+	def read_terms_in_file_line_dic(self):
+		"""It reads the ith term of each file, find the lowest term (alphabetical order)
+			and updates a data structure [filename : <term, line>] ordered by term and filename
+			Calls save_final_pl_to_file
+
+			dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
+		"""
+		term=''
+		dictFileLine = {}
+		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
+		for ifilename in self._pl_file_list :
+			with open(ifilename, "r+") as file_content:
+				self.read_terms_from_i_file(file_content,ifilename)
+				dictFileLine[ifilename] = file_content.tell()
+		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
+		while bool(self.dict_file_term):
+			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
+			pl=self.dict_term_pl[element[0]]
+			if(self.save_final_pl_to_file(element[0],pl)):
+				for ifilename in element[1]:
+					file_content = open(ifilename, "r+")
+					if ifilename in dictFileLine:
+						file_content.seek(dictFileLine[ifilename])
+					if(self.read_terms_from_i_file(file_content,ifilename) == False):
+						file_content.close()
+						del file_content
+						del dictFileLine[ifilename]
+					else:
+						dictFileLine[ifilename] = file_content.tell()
+
+			else:
+				return False
+		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
+		self.save_extra_file()
 
 	def calculate_all_term_pl_scores(self, PL):
 		"""Modify final inverted file to write final score for each doc in eah pl
