@@ -35,7 +35,11 @@ def term_frequency_query(terms):
 
 
 def inverse_document_frequency(nb_docs_containing, nb_docs):
-    return math.log10(nb_docs/nb_docs_containing)
+    try:
+        return math.log10(nb_docs/nb_docs_containing)
+    except ValueError:
+        #print "operation log {0}/{1} failed".format(nb_docs_containing, nb_docs)
+        return float('nan')
 
 def calculertf_idf(query, f_term, f_index, f_docID ):
     terms = get_terms(query)
