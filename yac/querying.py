@@ -192,24 +192,24 @@ if __name__=='__main__':
         index.extra_file_handler()
     else:
         start = time.clock()
-        index = indexing.Index("../../latimes/la*89")
+        index = indexing.Index("../../../latimes/la010189")
         index.create_index_from_file_format_merged_based()
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
 
-	query = raw_input("Entrez votre recherche : ")
-	while(query != "exit"):
-		print "Resutat recherche disjonctive:"
-		print "requetage naif"
+    query = raw_input("Entrez votre recherche : ")
+    while(query != "exit"):
+        print "Resutat recherche disjonctive:"
+        print "requetage naif"
 
-		dicOfDocs = findDocsDisjMergedBased(index, query)
-		sortAndPrintDict(dicOfDocs)
+        dicOfDocs = findDocsDisjMergedBased(index, query)
+        sortAndPrintDict(dicOfDocs)
 
-		print "requetage faggins"
+        print "requetage faggins"
 
-		threshold_algo(index, query,10)
+        threshold_algo(index, query,10)
 
-		query = raw_input("Entrez votre recherche : ")
+        query = raw_input("Entrez votre recherche : ")
 
 
 
