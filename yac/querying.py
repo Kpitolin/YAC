@@ -144,15 +144,15 @@ def popSmallestDict(dictList):
 
 #Token recherche conjonctive ("ET")
 #Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document
-def findDocsConj(index,query):
+def find_docs_conj_merged_based(index,query):
 
-	queryList = getTerms(query)
+	queryList = get_terms(query)
 	postingLists = []
 	#On recupere les PL de chaque terme
 	for word in queryList:
 		if word in index.dictTermsOffset:
 			offset = index.dictTermsOffset[word]
-			line = linecache.getline("InvertedFile1", offset)
+			line = linecache.getline("InvertedFile", offset)
 			pl = index.text_to_pair_list(line)
 			postingLists += pl
 
@@ -172,15 +172,39 @@ def findDocsConj(index,query):
 			request[doc0] = doc_score
 	return response
 
+def find_docs_conj_memory(invertedFile,query):
+    queryList = get_terms(query)
+    postingLists = []
+    #On recupere les PL de chaque terme
+    for word in queryList :
+        if word in invertedFile:
+            postingLists += [invertedFile[word]]
+    
+    request = {}
+    last = []
+    if len(postingLists)>0:
+        last = postingLists.pop()
+
+    for doc in last : #Boucle sur les clefs dans results
+        doc_score = last[doc]
+        for PL in postingLists :
+            if PL.has_key(doc) :
+                doc_score += PL[doc]
+            else :
+                doc_score = 0
+                break
+        if doc_score != 0 :
+            request[doc] = doc_score
+    return request
 def findDocsSortedByScoreDisj(invertedFile,query):
-	nonSortedDict = findDocsDisj(invertedFile,query)
-	sortedDict = sortDict(nonSortedDict)
+	nonSortedDict = findDocsDisjMemory(invertedFile,query)
+	sortedDict = sort(nonSortedDict)
 	return (sortedDict, nonSortedDict)
 
 
 def findDocsSortedByScoreConj(invertedFile,query):
-	nonSortedDict = findDocsConj(invertedFile,query)
-	sortedDict = sortDict(nonSortedDict)
+	nonSortedDict = find_docs_conj_memory(invertedFile,query)
+	sortedDict = sort(nonSortedDict)
 	return (sortedDict, nonSortedDict)
 
 if __name__=='__main__':
@@ -192,7 +216,7 @@ if __name__=='__main__':
         index.extra_file_handler()
     else:
         start = time.clock()
-        index = indexing.Index("../../../latimes/la010189")
+        index = indexing.Index("../../../latimes/la*89")
         index.create_index_from_file_format_merged_based()
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)

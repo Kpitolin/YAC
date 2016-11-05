@@ -226,14 +226,13 @@ class Index:
 
 
 
-	def create_index_merged_based_from_text(self, text, old_doc_id=None):
+	def create_index_merged_based_from_text(self, text, old_doc_id=None,old_inv_ind = None):
 		""" Creates a merged based index
 
 			We read text from the stream doc by doc until we reach docLimit or memoryLimit
 			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
 			Warning : the number of docs in the file must be > self._doc_limit
 		"""
-
 		doc_id = ''
 		doc = ''
 		lines = []
@@ -245,7 +244,6 @@ class Index:
 		elif isinstance(text,str):
 			lines = text.splitlines(False)
 
-		#print lines
 		nbDoc = 0
 		self.inv_index = {}
 
@@ -253,9 +251,9 @@ class Index:
 			return self.inv_index
 
 		for line in lines:
-			if nbDoc >= self._doc_limit: # if we reached the limit of documents per file
+			if nbDoc == self._doc_limit: # if we reached the limit of documents per file
 				self.save_index_to_file()
-				self.create_index_merged_based_from_text(text,self._current_doc_index)
+				return self.create_index_merged_based_from_text(text,self._current_doc_index, self.inv_index)
 				break
 			doc = doc + '\n' + line
 			match = re.search(PATTERN_DOC_ID, line)
@@ -263,11 +261,14 @@ class Index:
 			if match:
 				#extract the docid from the line : the first group in the regex (what's between parenthesis)
 				doc_id = int(match.group(1))
-				if doc_id >= self._current_doc_index:
+				#if we find the same id as in the previous call, we stop
+				if doc_id == old_doc_id:
+					return old_inv_ind
+				elif doc_id >= self._current_doc_index:
 					local_doc_id_list.append(doc_id)
 					self._doc_id_list.append(doc_id)
-					#print(self._doc_id_list)
 					self._current_doc_index = doc_id
+
 
 			elif re.search(PATTERN_DOC_END, line) and doc != '':
 
@@ -368,7 +369,6 @@ class Index:
 			file_object.write("")
 		else:
 			file_object.writelines(data[nb_lines_to_remove:]) # writes lines minus the first nb_lines_to_remove ones
-		print data[0:nb_lines_to_remove]
 		file_object.truncate() # the file size is reduced to remove the rest
 		file_object.close()
 
