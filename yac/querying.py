@@ -75,15 +75,18 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
     smallest_score = 0 # Plus petit score parmis les documents du top-k
     top_k = []
     docs_met = set()
-    # TODO :  check if k < nb docs
-    while t > smallest_score or len(top_k) < k: # Iteration sur les documents tries par score
+    remaining_terms = set(terms)
+    while (t > smallest_score or len(top_k) < k) and len(remaining_terms) > 0: # Iteration sur les documents tries par score
         t = 0 # Seuil : score maximal atteignable par les documents pas encore etudies
+        terms = list(remaining_terms)
         for term in terms:
-            if len(sorted_by_scores[term]) > 0:
+            if len(sorted_by_scores[term]): # Is this test really usefull ?
                 doc = sorted_by_scores[term].pop(0) # Document avec le meilleur score pour ce terme
-                if len(sorted_by_scores[term]) > 0:
+                if len(sorted_by_scores[term]):
                     t += sorted_by_docs[term][sorted_by_scores[term][0]] # Mise a jour du seuil
-                if not doc in docs_met: # Si c'est la premiere fois qu'on le rencontre
+                else:
+                    remaining_terms.remove(term)
+                if doc not in docs_met: # Si c'est la premiere fois qu'on le rencontre
                     docs_met.add(doc)
                     score = 0
                     # Calcul du score du document
@@ -91,7 +94,7 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
                         if doc in sorted_by_docs[a_term]:
                             score += sorted_by_docs[a_term][doc]
                     # Modification eventuelle des top-k documents
-                    #print "Doc " + str(doc) + " has a score of " + str(score)
+                    # print "Doc " + str(doc) + " has a score of " + str(score)
                     if len(top_k) < k:
                         top_k.append((doc, score))
                         top_k.sort(key=lambda x: x[1])
@@ -100,10 +103,10 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
                             top_k.pop(0)
                             top_k.append((doc, score))
                             top_k.sort(key=lambda x: x[1])
-                            #print "New top-k :"
-                            #print top_k
-        smallest_score = top_k[0][1]
-        #print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
+                            # print "New top-k :"
+                            # print top_k
+                    smallest_score = top_k[0][1]
+        # print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
     return top_k
 
 ########## NAIVE ALGORITHM ##########
