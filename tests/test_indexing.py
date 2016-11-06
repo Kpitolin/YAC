@@ -282,6 +282,63 @@ class IndexingTestCase(unittest.TestCase):
 			self.assertFalse(self._index.read_terms_from_i_file(ifile, "fileIndexTest4"))
 
 
+	def test_remove_line_from_file_start_2_lines(self):
+		stringNormalDoc = """<DOC>
+<DOCID> 1 </DOCID>
+The onset of "the new Gorbachev".
+</DOC>
+<DOC>
+<DOCID> 2 </DOCID>
+the onset of "the new Gorbachev"!
+</DOC>"""
+		stringNormalDocCut = """The onset of "the new Gorbachev".
+</DOC>
+<DOC>
+<DOCID> 2 </DOCID>
+the onset of "the new Gorbachev"!
+</DOC>"""
+		with open('fileIndexTest5', "w") as ifile:
+			ifile.write(stringNormalDoc)
+
+		with open('fileIndexTest5', "r+") as ifile:
+			self._index.remove_lines_from_file_start(ifile,2)
+		self.assertEqual(open('fileIndexTest5', "r").read(),stringNormalDocCut)
+
+
+	def test_remove_line_from_file_start_rm_nothing(self):
+		stringNormalDoc = """<DOC>
+<DOCID> 1 </DOCID>
+The onset of "the new Gorbachev".
+</DOC>
+<DOC>
+<DOCID> 2 </DOCID>
+the onset of "the new Gorbachev"!
+</DOC>"""
+
+		with open('fileIndexTest6', "w") as ifile:
+			ifile.write(stringNormalDoc)
+
+		with open('fileIndexTest6', "r+") as ifile:
+			self._index.remove_lines_from_file_start(ifile,0)
+		self.assertEqual(open('fileIndexTest6', "r").read(),stringNormalDoc)
+
+
+	def test_remove_line_from_file_start_everything(self):
+		stringNormalDoc = """<DOC>
+<DOCID> 1 </DOCID>
+The onset of "the new Gorbachev".
+</DOC>
+<DOC>
+<DOCID> 2 </DOCID>
+the onset of "the new Gorbachev"!
+</DOC>"""
+
+		with open('fileIndexTest7', "w") as ifile:
+			ifile.write(stringNormalDoc)
+
+		with open('fileIndexTest7', "r+") as ifile:
+			self._index.remove_lines_from_file_start(ifile,8)
+		self.assertEqual(open('fileIndexTest7', "r").read(),"")
 
 if __name__=='__main__':
 	unittest.main()

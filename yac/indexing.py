@@ -22,26 +22,11 @@ class Index:
     """
 
     @property
-    def current_doc_index(self):
-        return self._current_doc_index
-    @current_doc_index.setter
-    def current_doc_index(self, value):
-        self._current_doc_index = value
-
-    @property
-    def doc_limit(self):
-        return self._doc_limit
-
-    @doc_limit.setter
-    def doc_limit(self, value):
-        self._doc_limit = value
-
-    @property
     def memory_limit(self):
-        return self._memory_limit
+        return self.memory_limit
     @memory_limit.setter
     def memory_limit(self, value):
-        self._memory_limit = value
+        self.memory_limit = value
 
 
     def __init__(self, memory_limit = 1000000, filter_tags=False, remove_stopwords=False, case_sensitive=False, with_stemming=False):
@@ -53,10 +38,8 @@ class Index:
         self.with_stemming = with_stemming
         self.indexed = False
 
-        self._doc_id_list = []
-        self._pl_file_list = [] # Contains names of the partial index files in merge-based mode
-        self._current_doc_index = 0
-        self._doc_quantity = 0
+        self._doc_id_list = [] # Contains the ids of the documents indexed
+        self._pl_file_list = [] # Contains the filenames of the partial index in merge-based mode
         self.offset = 1;
 
         self.dict_file_term = sorteddict()
@@ -161,30 +144,36 @@ class Index:
 
     # TODO Changer le fonctionnement de dictFile
     def merge_partial_indexs(self):
-        """ It reads the ith term of each file, find the lowest term (alphabetical order) and updates a data structure [filename : <term, line>] ordered by term and filename
-        Calls write_merged_pl
+        """ "It reads the ith term of each file, find the lowest term (alphabetical order)
+        and updates a data structure [filename : <term, line>] ordered by term and filename
+        Calls save_final_pl_to_file
 
-        dictFile is a data structure {filename: content} that allows us to have the state of everything open file saved (with the cursor at the last line read)
+        dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
         """
 
         term = ''
-        dictFile = {}
+        dictFileLine = {}
         #fileFinished=list()#
         # Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-        for ifilename in self._pl_file_list :
-            dictFile[ifilename] = open(ifilename, "r");
-            self.read_terms_from_i_file(dictFile[ifilename], ifilename)
+        for ifilename in self._pl_file_list:
+            with open(ifilename, "r+") as file_content:
+                self.read_terms_from_i_file(file_content, ifilename)
+                dictFileLine[ifilename] = file_content.tell()
         # Pop the first term of the dictionary and update the dic by reading the following lines of the file
         while bool(self.dict_file_term):
             element = self.dict_file_term.popitem() # Returns the pair <term, [filename]> with the lowest key (sorteddict)
             pl = self.dict_term_pl[element[0]]
-            #dictFile[ifilename]
-            #dictFile[ifilename].close()
             if(self.write_merged_pl(element[0], pl)):
                 for ifilename in element[1]:
-                    if not self.read_terms_from_i_file(dictFile[ifilename], ifilename):
-                        dictFile[ifilename].close()
-                        del dictFile[ifilename]
+                    file_content = open(ifilename, "r+")
+                    if ifilename in dictFileLine:
+                        file_content.seek(dictFileLine[ifilename])
+                    if not self.read_terms_from_i_file(file_content, ifilename):
+                        file_content.close()
+                        del file_content
+                        del dictFileLine[ifilename]
+                    else:
+                        dictFileLine[ifilename] = file_content.tell()
             else:
                 return False
         # Save the offsets in a file
@@ -194,16 +183,15 @@ class Index:
     def read_terms_from_i_file(self, f, ifilename):
         """ X """
 
-        pattern_term = r"<?/?\w+"
+        pattern_term = r"-?<?/?\w+"
         term = f.readline()
         pl = f.readline().rstrip()
-        if len(term) != 0 and not re.match(pattern_term,term):
-            return self.read_terms_from_i_file(f,ifilename)
+        if len(term) != 0 and not re.match(pattern_term, term):
+            return self.read_terms_from_i_file(f, ifilename) # if we didn't find a term, we try again until end of file
         elif len(term) == 0 :
             return False
         if term not in self.dict_file_term.keys():
             self.dict_file_term[term] = sortedlist([ifilename])
-
             self.dict_term_pl[term] = [pl]
         else:
             (self.dict_file_term[term]).add(ifilename)
@@ -212,11 +200,7 @@ class Index:
         return True
 
     def write_merged_pl(self, term, pl):
-        """ Creates a single file for the posting lists. format :
-        PL;PL2;PL3 and so on
-        It writes each posting list from offsetMin to offsetMax
-        It also writes a dic {term : <offsetMin, offsetMax>}
-        """
+        """ Writes the complete pl of term in the file containing the final Inverted Index """
 
         list_pls = self.calculate_all_term_pl_scores(pl)
 
@@ -278,3 +262,85 @@ class Index:
                 pair = pair_list[index].split(",")
                 pair_list[index] = (pair[0],pair[1])
         return pair_list
+
+    ########## UNUSED FUNCTIONS ##########
+
+	def read_terms_from_i_file_with_line_deleting(self,f,ifilename):
+		pattern_term = r"-?<?/?\w+"
+		term = f.readline()
+		pl = f.readline().rstrip()
+		if len(term) != 0 and not re.match(pattern_term,term):
+			return self.read_terms_from_i_file_with_line_deleting(f,ifilename) # if we didn't find a term, we try again until end of file
+		elif len(term) == 0 :
+			return False
+		if term not in self.dict_file_term.keys():
+			self.dict_file_term[term] =sortedlist([ifilename])
+			self.dict_term_pl[term] = [pl]
+		else:
+			(self.dict_file_term[term]).add(ifilename)
+			index_0 = (self.dict_file_term[term]).index(ifilename)
+			(self.dict_term_pl[term]).insert(index_0,pl)
+		self.remove_lines_from_last_cursor_position(f) # we remove the two lines we just read
+		return True
+
+	def remove_lines_from_file_start(self,file_object,nb_lines_to_remove):
+		"""
+		In a file already open (so we can read and write), for example in r+ mode,
+	 	we want to remove the nb_lines_to_remove from """
+		file_object.seek(0) # go to beginning of file
+		data = file_object.read().splitlines(True) # save the lines of the file in list
+		file_object.seek(0) # go to beginning of file
+		if len(data) < nb_lines_to_remove:
+			file_object.write("")
+		else:
+			file_object.writelines(data[nb_lines_to_remove:]) # writes lines minus the first nb_lines_to_remove ones
+		print data[0:nb_lines_to_remove]
+		file_object.truncate() # the file size is reduced to remove the rest
+		file_object.close()
+
+
+	def remove_lines_from_last_cursor_position(self,file_object):
+		"""
+		In a file already open (so we can read and write), for example in r+ mode,
+	 	we want to remove the nb_lines_to_remove from """
+		data = file_object.read().splitlines(True) # save the lines of the file in list
+		file_object.seek(0) # go to beginning of file
+		file_object.writelines(data)
+		file_object.truncate() # the file size is reduced to remove the rest
+		file_object.close()
+
+
+	def read_terms_in_file_line_dic(self):
+		"""It reads the ith term of each file, find the lowest term (alphabetical order)
+			and updates a data structure [filename : <term, line>] ordered by term and filename
+			Calls save_final_pl_to_file
+
+			dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
+		"""
+		term=''
+		dictFileLine = {}
+		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
+		for ifilename in self._pl_file_list :
+			with open(ifilename, "r+") as file_content:
+				self.read_terms_from_i_file(file_content,ifilename)
+				dictFileLine[ifilename] = file_content.tell()
+		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
+		while bool(self.dict_file_term):
+			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
+			pl=self.dict_term_pl[element[0]]
+			if(self.save_final_pl_to_file(element[0],pl)):
+				for ifilename in element[1]:
+					file_content = open(ifilename, "r+")
+					if ifilename in dictFileLine:
+						file_content.seek(dictFileLine[ifilename])
+					if(self.read_terms_from_i_file(file_content,ifilename) == False):
+						file_content.close()
+						del file_content
+						del dictFileLine[ifilename]
+					else:
+						dictFileLine[ifilename] = file_content.tell()
+
+			else:
+				return False
+		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
+		self.save_extra_file()

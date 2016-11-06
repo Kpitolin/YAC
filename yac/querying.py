@@ -163,6 +163,7 @@ def find_docs_disj_memory(inverted_index, query):
 #     return smallest
 
 #Token recherche conjonctive ("ET")
+# <<<<<<< HEAD
 # def findDocsConj(index,query):
 #     """ Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document """
 #
@@ -223,13 +224,82 @@ def print_docs_ordered_by_scores(dict_score, sorted_list):
         print("Terms of query not found in document(s)")
     for doc in sorted_list :
         print("{0} : {1}".format(doc, str(dict_score[doc])))
+# =======
+# #Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document
+# def findDocsConj(index,query):
+#
+# 	queryList = getTerms(query)
+# 	postingLists = []
+# 	#On recupere les PL de chaque terme
+# 	for word in queryList:
+# 		if word in index.dictTermsOffset:
+# 			offset = index.dictTermsOffset[word]
+# 			line = linecache.getline("InvertedFile1", offset)
+# 			pl = index.text_to_pair_list(line)
+# 			postingLists += pl
+#
+# 	request = {}
+# 	last = []
+# 	if len(postingLists)>0:
+# 		last = postingLists.pop()
+#
+# 	for doc0, score0 in last : #Boucle sur les clefs dans results
+# 		for doc,score in postingLists :
+# 			if doc == doc :
+# 				doc_score += PL[doc]
+# 			else :
+# 				doc_score = 0
+# 				break
+# 		if doc_score != 0 :
+# 			request[doc0] = doc_score
+# 	return response
+#
+# def findDocsSortedByScoreDisj(invertedFile,query):
+# 	nonSortedDict = findDocsDisj(invertedFile,query)
+# 	sortedDict = sortDict(nonSortedDict)
+# 	return (sortedDict, nonSortedDict)
+#
+#
+# def findDocsSortedByScoreConj(invertedFile,query):
+# 	nonSortedDict = findDocsConj(invertedFile,query)
+# 	sortedDict = sortDict(nonSortedDict)
+# 	return (sortedDict, nonSortedDict)
+#
+# if __name__=='__main__':
+#
+# 	#Prompt for query terms
+# 	#Here specify the location of the textfiles to search upon
+#     if os.path.isfile("ExtraFile") == True and os.path.isfile("InvertedFile") == True:
+#         index = indexing.Index()
+#         index.extra_file_handler()
+#     else:
+#         start = time.clock()
+#         index = indexing.Index("../../../latimes/la010189")
+#         index.create_index_from_file_format_merged_based()
+#         end = time.clock()
+#         print "Elapsed Time: {} seconds".format(end - start)
+#     query = raw_input("Entrez votre recherche : ")
+#     while(query != "exit"):
+#         print "Resutat recherche disjonctive:"
+#         print "requetage naif"
+#
+#         dicOfDocs = findDocsDisjMergedBased(index, query)
+#         sortAndPrintDict(dicOfDocs)
+#
+#         print "requetage faggins"
+#
+#         threshold_algo(index, query,10)
+#
+#         query = raw_input("Entrez votre recherche : ")
+#
+# >>>>>>> master
 
 
 if __name__=='__main__':
 
     index = indexing.Index(memory_limit = 1000000)
     start = time.clock()
-    index.index("../../latimes/la01*89")
+    index.index("../../latimes/la010189")
     end = time.clock()
     print "Elapsed Time: {} seconds".format(end - start)
 
