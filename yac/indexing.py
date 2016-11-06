@@ -5,6 +5,7 @@ import re
 import time
 import sys
 import pickle
+import os
 from blist import sorteddict, sortedlist
 
 import tokenization

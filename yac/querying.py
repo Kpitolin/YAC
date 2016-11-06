@@ -298,10 +298,11 @@ def print_docs_ordered_by_scores(dict_score, sorted_list):
 if __name__=='__main__':
 
     index = indexing.Index(memory_limit = 1000000)
-    start = time.clock()
-    index.index("../../latimes/la010189")
-    end = time.clock()
-    print "Elapsed Time: {} seconds".format(end - start)
+    if not index.use_existing_index():
+        start = time.clock()
+        index.index("../../latimes/la010189")
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end - start)
 
     query = raw_input("Entrez votre recherche : ")
     while(query != "exit"):
