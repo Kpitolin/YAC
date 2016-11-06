@@ -10,6 +10,22 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 porter_stemmer = PorterStemmer()
 
+def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
+    """ X """
+
+    stop_words = stopwords.words('english')
+
+    if not case_sensitive:
+        query = query.lower()
+    query = re.sub(r"[^a-zA-Z0-9 ]",' ',query)
+    words = [x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
+    terms = []
+    if with_stemming:
+        terms = [porter_stemmer.stem(word) for word in words]
+    else:
+        terms = words
+    return terms
+
 ########## THRESHOLD ALGORITHM ##########
 
 def text_to_pl(text):
@@ -90,19 +106,20 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
         #print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
     return top_k
 
-def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
-    stop_words = stopwords.words('english')
+########## NAIVE ALGORITHM ##########
 
-    if not case_sensitive:
-        query = query.lower()
-    query = re.sub(r"[^a-zA-Z0-9 ]",' ',query)
-    words = [x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
-    terms = []
-    if with_stemming:
-        terms = [porter_stemmer.stem(word) for word in words]
+def naive_disj_query(index, query):
+    """ X """
+
+    if index.indexed:
+        if index.in_memory:
+            return find_docs_disj_memory(index.inv_index, query)
+        else:
+            return find_docs_disj_merge_based(index, query)
     else:
-        terms = words
-    return terms
+        print "No index in memory nor loaded from file."
+    return False
+
 
 #Token recherche disjonctive ("OU")
 def find_docs_disj_merge_based(index, query):
@@ -191,7 +208,7 @@ def find_docs_disj_memory(inverted_index, query):
 #     return (sortedDict, nonSortedDict)
 
 
-########## PRINT FUNCTIONS ##########
+########## PRINTING FUNCTIONS ##########
 
 def sort_and_print_dict(dict_score):
     """ Orders by score (DESC) and prints a list of pairs {doc_id: score} """
@@ -207,29 +224,20 @@ def print_docs_ordered_by_scores(dict_score, sorted_list):
     for doc in sorted_list :
         print("{0} : {1}".format(doc, str(dict_score[doc])))
 
+
 if __name__=='__main__':
 
-    # Prompt for query terms
-    # Here specify the location of the textfiles to search upon
-    # if os.path.isfile("Offsets"):
-    #     index = indexing.Index()
-    #     index.load_offsets()
-    # else:
-    #     start = time.clock()
-    #     index = indexing.Index("../../latimes/la010189")
-    #     index.index_in_file()
-    #     end = time.clock()
-    #     print "Elapsed Time: {} seconds".format(end - start)
-
-    index = indexing.Index()
-    # index = indexing.Index("test")
-    index.index("../../latimes/la010189")
+    index = indexing.Index(memory_limit = 1000000)
+    start = time.clock()
+    index.index("../../latimes/la01*89")
+    end = time.clock()
+    print "Elapsed Time: {} seconds".format(end - start)
 
     query = raw_input("Entrez votre recherche : ")
     while(query != "exit"):
         # print "Resutat recherche disjonctive:"
         print "Requetage naif :"
-        dic_of_docs = find_docs_disj_merge_based(index, query)
+        dic_of_docs = naive_disj_query(index, query)
         sort_and_print_dict(dic_of_docs)
         print "Requetage threshold algo :"
         top_k = query_with_threshold_algo(index, query, 5)
