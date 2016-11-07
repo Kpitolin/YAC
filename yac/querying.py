@@ -38,14 +38,14 @@ def text_to_pl(text):
         pl[pair[0]] = float(pair[1])
     return pl
 
-def query_with_threshold_algo(index, query, k):
+def query_with_threshold_algo(index, query, k, disj=True):
     """ Prepares sorted_by_docs and sorted_by_scores for threshold_algo() and calls it """
 
     if index.indexed:
         sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
         sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
-        terms = [] # Termes de la requete presents dans l'inverted file
-        query_terms = get_terms(query)
+        terms = [] # Termes de la requete presents dans l'inverted index
+        query_terms = set(get_terms(query))
         # Construction des deux indexs : tries par document et par score
         if index.in_memory:
             for term in query_terms:
@@ -61,22 +61,23 @@ def query_with_threshold_algo(index, query, k):
                     sorted_by_docs[term] = text_to_pl(text)
                     sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
         if len(terms) > 0:
-            return threshold_algo(terms, sorted_by_docs, sorted_by_scores, k)
+            return threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj)
         else:
             print "None of the query terms has been found."
     else:
         print "No index in memory nor loaded from file."
     return False
 
-def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
+
+def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj):
     """ Runs threshold algorithm """
 
     t = 1
     smallest_score = 0 # Plus petit score parmis les documents du top-k
     top_k = []
     docs_met = set()
-    remaining_terms = set(terms)
-    while (t > smallest_score or len(top_k) < k) and len(remaining_terms) > 0: # Iteration sur les documents tries par score
+    remaining_terms = terms #
+    while (t > smallest_score or len(top_k) < k) and len(remaining_terms): # Iteration sur les documents tries par score
         t = 0 # Seuil : score maximal atteignable par les documents pas encore etudies
         terms = list(remaining_terms)
         for term in terms:
@@ -85,28 +86,31 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k):
                 if len(sorted_by_scores[term]):
                     t += sorted_by_docs[term][sorted_by_scores[term][0]] # Mise a jour du seuil
                 else:
-                    remaining_terms.remove(term)
+                    if disj:
+                        remaining_terms.remove(term)
+                    else:
+                        remaining_terms = list() # In conj queries
                 if doc not in docs_met: # Si c'est la premiere fois qu'on le rencontre
                     docs_met.add(doc)
                     score = 0
                     # Calcul du score du document
+                    doc_has_all_terms = True # Used in conj queries
                     for a_term in terms:
                         if doc in sorted_by_docs[a_term]:
                             score += sorted_by_docs[a_term][doc]
+                        else:
+                            doc_has_all_terms = False
                     # Modification eventuelle des top-k documents
-                    # print "Doc " + str(doc) + " has a score of " + str(score)
-                    if len(top_k) < k:
-                        top_k.append((doc, score))
-                        top_k.sort(key=lambda x: x[1])
-                    else:
-                        if score > top_k[0][1]:
-                            top_k.pop(0)
+                    if doc_has_all_terms or disj:
+                        if len(top_k) < k:
                             top_k.append((doc, score))
                             top_k.sort(key=lambda x: x[1])
-                            # print "New top-k :"
-                            # print top_k
+                        else:
+                            if score > top_k[0][1]:
+                                top_k.pop(0)
+                                top_k.append((doc, score))
+                                top_k.sort(key=lambda x: x[1])
                     smallest_score = top_k[0][1]
-        # print "t = " + str(t) + " > smallest score = " + str(smallest_score) + " ? " + str(t > smallest_score)
     return top_k
 
 ########## NAIVE ALGORITHM DISJUNCTIVE ##########
@@ -135,7 +139,7 @@ def query_with_naive_disj_algo(index, query):
 def naive_disj_algo(inverted_index, query):
     """ Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document """
 
-    terms = get_terms(query)
+    terms = set(get_terms(query))
     results = {}
     for term in terms:
         if term in inverted_index:
@@ -220,7 +224,7 @@ def print_docs_ordered_by_scores(dict_score, sorted_list):
 
 if __name__=='__main__':
 
-    index = indexing.Index(memory_limit = 1000000)
+    index = indexing.Index(memory_limit = 100000)
     if not index.use_existing_index():
         start = time.clock()
         index.index("../../latimes/la010189")
@@ -233,15 +237,22 @@ if __name__=='__main__':
         print "Requetage naif disjonctif :"
         dic_of_docs = query_with_naive_disj_algo(index, query)
         sort_and_print_dict(dic_of_docs)
-        print "Requetage naif conjonctif :"
-        dic_of_docs = query_with_naive_conj_algo(index, query)
-        sort_and_print_dict(dic_of_docs)
-        print "Requetage threshold algo :"
-        top_k = query_with_threshold_algo(index, query, 5)
+        print "Requetage threshold disjonctif :"
+        top_k = query_with_threshold_algo(index, query, 50)
         if top_k:
             print top_k
         else:
-            print "No result for threshold algo."
+            print "No result for threshold disjunctive."
+
+        print "Requetage naif conjonctif :"
+        dic_of_docs = query_with_naive_conj_algo(index, query)
+        sort_and_print_dict(dic_of_docs)
+        print "Requetage threshold conjonctif :"
+        top_k = query_with_threshold_algo(index, query, 50, disj=False)
+        if top_k:
+            print top_k
+        else:
+            print "No result for threshold disjunctive."
         query = raw_input("Entrez votre recherche : ")
 
 

@@ -40,13 +40,12 @@ class Index:
         self.indexed = False
 
         self._doc_id_list = [] # Contains the ids of the documents indexed
-        self._pl_file_list = [] # Contains the filenames of the partial index in merge-based mode
+        self._partial_files_names = [] # Contains the filenames of the partial index in merge-based mode
+        self.dict_terms_offset = dict() # Keep the line where each term is in InvertedFile
         self.offset = 1;
 
         self.dict_file_term = sorteddict()
         self.dict_term_pl = dict()
-
-        self.dict_terms_offset = dict()
 
 
     def index(self, file_path_format):
@@ -129,7 +128,7 @@ class Index:
         term
         Posting List
 
-        Then adds the filename to self._pl_file_list
+        Then adds the filename to self._partial_files_names
         """
 
         filename = "partialIndex" + str(time.clock())
@@ -141,7 +140,16 @@ class Index:
                 f.write("\n")
 
         if len(sorted_terms) > 0:
-            self._pl_file_list.append(filename)
+            self._partial_files_names.append(filename)
+
+    # def save_index(self):
+    #     if self.indexed:
+    #         if self.in_memory:
+    #             for term in self.inv_index:
+    #
+    #     else:
+    #         print "Can't save index if it has not been idexed !"
+
 
     # TODO Changer le fonctionnement de dictFile
     def merge_partial_indexs(self):
@@ -156,47 +164,47 @@ class Index:
         dictFileLine = {}
         #fileFinished=list()#
         # Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-        for ifilename in self._pl_file_list:
-            with open(ifilename, "r+") as file_content:
-                self.read_terms_from_i_file(file_content, ifilename)
-                dictFileLine[ifilename] = file_content.tell()
+        for partial_file_name in self._partial_files_names:
+            with open(partial_file_name, "r+") as file_content:
+                self.read_terms_from_i_file(file_content, partial_file_name)
+                dictFileLine[partial_file_name] = file_content.tell()
         # Pop the first term of the dictionary and update the dic by reading the following lines of the file
         while bool(self.dict_file_term):
-            element = self.dict_file_term.popitem() # Returns the pair <term, [filename]> with the lowest key (sorteddict)
-            pl = self.dict_term_pl[element[0]]
-            if(self.write_merged_pl(element[0], pl)):
-                for ifilename in element[1]:
-                    file_content = open(ifilename, "r+")
-                    if ifilename in dictFileLine:
-                        file_content.seek(dictFileLine[ifilename])
-                    if not self.read_terms_from_i_file(file_content, ifilename):
+            term, partial_files_names = self.dict_file_term.popitem() # Returns the pair <term, [filename]> with the lowest key (sorteddict)
+            pl = self.dict_term_pl[term]
+            if self.write_merged_pl(term, pl):
+                for partial_file_name in partial_files_names:
+                    file_content = open(partial_file_name, "r+")
+                    if partial_file_name in dictFileLine:
+                        file_content.seek(dictFileLine[partial_file_name])
+                    if not self.read_terms_from_i_file(file_content, partial_file_name):
                         file_content.close()
                         del file_content
-                        del dictFileLine[ifilename]
+                        del dictFileLine[partial_file_name]
                     else:
-                        dictFileLine[ifilename] = file_content.tell()
+                        dictFileLine[partial_file_name] = file_content.tell()
             else:
                 return False
         # Save the offsets in a file
         with open('Offsets', "w") as f:
             pickle.dump(self.dict_terms_offset, f)
 
-    def read_terms_from_i_file(self, f, ifilename):
+    def read_terms_from_i_file(self, f, partial_file_name):
         """ X """
 
         pattern_term = r"-?<?/?\w+"
         term = f.readline()
         pl = f.readline().rstrip()
         if len(term) != 0 and not re.match(pattern_term, term):
-            return self.read_terms_from_i_file(f, ifilename) # if we didn't find a term, we try again until end of file
+            return self.read_terms_from_i_file(f, partial_file_name) # if we didn't find a term, we try again until end of file
         elif len(term) == 0 :
             return False
         if term not in self.dict_file_term.keys():
-            self.dict_file_term[term] = sortedlist([ifilename])
+            self.dict_file_term[term] = sortedlist([partial_file_name])
             self.dict_term_pl[term] = [pl]
         else:
-            (self.dict_file_term[term]).add(ifilename)
-            index_0 = (self.dict_file_term[term]).index(ifilename)
+            (self.dict_file_term[term]).add(partial_file_name)
+            index_0 = (self.dict_file_term[term]).index(partial_file_name)
             (self.dict_term_pl[term]).insert(index_0, pl)
         return True
 
@@ -219,9 +227,9 @@ class Index:
             list_pls = list_pls + self.text_to_pair_list(sring_pls)
         list_pls = sorted(list_pls, key=lambda x: x[0])
         for index in range(len(list_pls)):
-                (doc_id, scoreTemp) = map(float,list_pls[index])
-                scoreTemp *= score.inverse_document_frequency(len(list_pls), len(self._doc_id_list))
-                list_pls[index] = (doc_id, scoreTemp)
+                (doc_id, score_temp) = map(float, list_pls[index])
+                score_temp *= score.inverse_document_frequency(len(list_pls), len(self._doc_id_list))
+                list_pls[index] = (doc_id, score_temp)
         return list_pls
 
     ########## CONVERTION FUNCTIONS ##########
@@ -266,7 +274,7 @@ class Index:
 
     ########## UNUSED FUNCTIONS ##########
 
-	def read_terms_from_i_file_with_line_deleting(self,f,ifilename):
+	def read_terms_from_i_file_with_line_deleting(self,f,partial_file_name):
 		pattern_term = r"-?<?/?\w+"
 		term = f.readline()
 		pl = f.readline().rstrip()
@@ -321,7 +329,7 @@ class Index:
 		term=''
 		dictFileLine = {}
 		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-		for ifilename in self._pl_file_list :
+		for ifilename in self._partial_files_names :
 			with open(ifilename, "r+") as file_content:
 				self.read_terms_from_i_file(file_content,ifilename)
 				dictFileLine[ifilename] = file_content.tell()
