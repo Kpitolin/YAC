@@ -47,7 +47,7 @@ class QueryingTestCase(unittest.TestCase):
 		self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
 		"around": {1:1}, "as": {2:1},"both": {1:1},
 		"bright": {3:1}}
-		dicOfDocs = querying.find_docs_disj_memory(self._index._inv_index, query)
+		dicOfDocs = querying.naive_disj_algo(self._index._inv_index, query)
 		self.assertEqual(dicOfDocs,{})
 
 	def test_find_docs_disj_normal(self):
@@ -55,34 +55,34 @@ class QueryingTestCase(unittest.TestCase):
 		"around": {1:1}, "as": {2:1},"both": {1:1},
 		"bright": {3:1}}
 		query = "and as both"
-		dicOfDocs = querying.find_docs_disj_memory(self._index._inv_index, query)
+		dicOfDocs = querying.naive_disj_algo(self._index._inv_index, query)
 		self.assertEqual(dicOfDocs,{1:2,2:1})
 
-	# def test_find_docs_conj_empty(self):
-	# 	self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
-	# 	"around": {1:1}, "as": {2:1},"both": {1:1},
-	# 	"bright": {3:1}}
-	# 	query = "Carrefour, tudududu!"
-	# 	dicOfDocs = querying.find_docs_conj_memory(self._index, query)
-	# 	self.assertEqual(dicOfDocs,{})
+	def test_find_docs_conj_empty(self):
+		self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
+		"around": {1:1}, "as": {2:1},"both": {1:1},
+		"bright": {3:1}}
+		query = "Carrefour, tudududu!"
+		dicOfDocs = querying.naive_conj_algo(self._index._inv_index, query)
+		self.assertEqual(dicOfDocs,{})
 
-	# def test_find_docs_conj_result_not_enought_matches(self):
-	# 	self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
-	# 	"around": {1:1}, "as": {2:1},"both": {1:1},
-	# 	"bright": {3:1}}
+	def test_find_docs_conj_result_not_enought_matches(self):
+		self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
+		"around": {1:1}, "as": {2:1},"both": {1:1},
+		"bright": {3:1}}
 
-	# 	query = "and as both"
-	# 	dicOfDocs = querying.find_docs_conj_memory(self._index, query)
-	# 	self.assertEqual(dicOfDocs, {})
+		query = "and as both"
+		dicOfDocs = querying.naive_conj_algo(self._index._inv_index, query)
+		self.assertEqual(dicOfDocs, {})
 
-	# def test_find_docs_conj_normal(self):
-	# 	self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
-	# 	"around": {1:1}, "as": {2:1},"both": {1:1},
-	# 	"bright": {3:1}}
+	def test_find_docs_conj_normal(self):
+		self._index._inv_index = { "and": {1:1}, "aquarium": {3:1}, "are":{3:1, 4:1},
+		"around": {1:1}, "as": {2:1},"both": {1:1},
+		"bright": {3:1}}
 
-	# 	query = "and around both"
-	# 	dicOfDocs = querying.find_docs_conj_memory(self._index, query)
-	# 	self.assertEqual(dicOfDocs, {1:3})
+		query = "and around both"
+		dicOfDocs = querying.naive_conj_algo(self._index._inv_index, query)
+		self.assertEqual(dicOfDocs, {1:3})
 
 
 	def tearDown(self):
