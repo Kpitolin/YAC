@@ -12,7 +12,7 @@ def filter_punctuation(text):
     characters_to_remove = string.punctuation
     for ch in CHARACTERS_TO_KEEP:
         characters_to_remove = characters_to_remove.replace(ch,"")
-    pattern = r"[{}]".format(characters_to_remove)
+    pattern = r"[{}]|-[-/]+|/".format(characters_to_remove)
     return str(re.sub(pattern,"",text))
 
 class TextFileList:
