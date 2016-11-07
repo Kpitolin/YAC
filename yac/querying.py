@@ -150,6 +150,7 @@ def naive_disj_algo(inverted_index, query):
                         results[doc] = inverted_index[term][doc]
     return results
 
+
 ########## NAIVE ALGORITHM CONJUNCTIVE ##########
 
 def query_with_naive_conj_algo(index, query):
@@ -224,10 +225,10 @@ def print_docs_ordered_by_scores(dict_score, sorted_list):
 
 if __name__=='__main__':
 
-    index = indexing.Index(memory_limit = 100000)
+    index = indexing.Index(memory_limit = 1000000)
     if not index.use_existing_index():
         start = time.clock()
-        index.index("../../latimes/la010189")
+        index.index_files("../../latimes/la010189")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
 
