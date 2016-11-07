@@ -1,37 +1,36 @@
 import unittest
 from context import score
-
+import math
 class ScoreTestCase(unittest.TestCase):
 	#def setUp(self):
 
-	#Indexing tests cases
-	def test_get_terms_with_stop_words(self):
+	#Score tests cases
+	def test_inverse_document_frequency_zero_containing(self):
+		nb_docs_containing = 0
+		nb_docs = 1
+		self.assertTrue(math.isnan(score.inverse_document_frequency(nb_docs_containing,nb_docs)))
 
-		query = "The most beautiful thing of all times !"
-		self.assertEqual(score.get_terms(query), ["the", "most", "beautiful","thing", "of", "all", "times"])
+	def test_inverse_document_frequency_zero_docs(self):
+		nb_docs_containing = 0
+		nb_docs = 0
+		self.assertTrue(math.isnan(score.inverse_document_frequency(nb_docs_containing,nb_docs)))
 
-	def test_get_terms_without_stop_words(self):
+	def test_inverse_document_frequency_one(self):
+		nb_docs_containing = 1 
+		nb_docs = 1
+		self.assertEqual(score.inverse_document_frequency(nb_docs_containing,nb_docs),0)
 
-		query = "The most beautiful thing of all times !"
-		self.assertEqual(score.get_terms(query,True), ["beautiful","thing","times"])
-	
+	def test_inverse_document_frequency_normal(self):
+		nb_docs_containing = 10
+		nb_docs = 100
+		self.assertEqual(score.inverse_document_frequency(nb_docs_containing,nb_docs),1.0)
 
-	def test_get_terms_case_insensitive(self):
+	def test_inverse_document_frequency_negative(self):
+		nb_docs_containing = -1 
+		nb_docs = 1
+		self.assertTrue(math.isnan(score.inverse_document_frequency(nb_docs_containing,nb_docs)))
 
-		query = "The Most BeauTiful Thing oF All Times !"
-		self.assertEqual(score.get_terms(query,False, False), ["the", "most", "beautiful","thing", "of", "all","times"])
-	
 
-	def test_get_terms_case_sensitive(self):
-
-		query = "The Most BeauTiful Thing oF All Times !"
-		self.assertEqual(score.get_terms(query,False, True), ["The", "Most", "BeauTiful","Thing", "oF", "All","Times"])
-	
-	def test_get_terms_stemming(self):
-
-		query = "The Most BeauTiful Thing oF All Times !"
-		self.assertEqual(score.get_terms(query,False, True, True), ["The", "Most", "BeauTi","Thing", "oF", "All","Time"])
-	
 	#def tearDown(self):
 
 if __name__=='__main__':

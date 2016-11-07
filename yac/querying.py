@@ -157,19 +157,10 @@ def find_docs_disj_memory(inverted_index, query):
                         results[doc] = inverted_index[term][doc]
     return results
 
-
-# def popSmallestDict(dictList):
-#     """ X """
-#
-#     smallest = min(dictList)
-#     dictList.remove(smallest)
-#     return smallest
-
 #Token recherche conjonctive ("ET")
-# <<<<<<< HEAD
-# def findDocsConj(index,query):
+# def find_docs_conj_memory(index,query):
 #     """ Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document """
-#
+
 #     terms = get_terms(query)
 #     postingLists = []
 #     #On recupere les PL de chaque terme
@@ -179,12 +170,10 @@ def find_docs_disj_memory(inverted_index, query):
 #             line = linecache.getline("InvertedFile", offset)
 #             pl = index.text_to_pair_list(line)
 #             postingLists += pl
-#
 #     results = {}
 #     last = []
 #     if len(postingLists)>0:
 #         last = postingLists.pop()
-#
 #     for doc0, score0 in last : #Boucle sur les clefs dans results
 #         for doc,score in postingLists :
 #             if doc == doc :
@@ -195,6 +184,15 @@ def find_docs_disj_memory(inverted_index, query):
 #         if doc_score != 0 :
 #             results[doc0] = doc_score
 #     return results
+
+# def popSmallestDict(dictList):
+#     """ X """
+#
+#     smallest = min(dictList)
+#     dictList.remove(smallest)
+#     return smallest
+
+
 
 # def findDocsSortedByScoreDisj(inverted_index,query):
 #     """ X """

@@ -13,8 +13,8 @@ porter_stemmer = PorterStemmer()
 def inverse_document_frequency(nb_docs_containing, nb_docs):
     try:
         return math.log10(float(nb_docs)/nb_docs_containing)
-    except ValueError:
-        print "Operation log {0}/{1} failed".format(nb_docs_containing, nb_docs)
+    except (ValueError, ZeroDivisionError) as e:
+        print "Operation log {0}/{1} failed : {2}".format(nb_docs_containing, nb_docs,e)
         return float('nan')
 
 # def calculertf_idf(query, f_term, f_index, f_docID ):
@@ -53,19 +53,6 @@ def inverse_document_frequency(nb_docs_containing, nb_docs):
 #                     break
 #     return term_weight_query_dict
 #
-# def get_terms(query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
-#     stop_words = stopwords.words('english')
-#
-#     if not case_sensitive:
-#         query = query.lower()
-#     query = re.sub(r"[^a-zA-Z0-9 ]",' ',query)
-#     words = [x for x in query.split() if not remove_stopwords or x.lower() not in stop_words]
-#     terms = []
-#     if with_stemming:
-#         terms = [porter_stemmer.stem(word) for word in words]
-#     else:
-#         terms = words
-#     return terms
 #
 # def term_frequency_query(terms):
 #     term_freq_dict = sorteddict({})
