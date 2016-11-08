@@ -216,7 +216,7 @@ class Index:
             self.dict_term_pl[term] = [pl]
         else:
             (self.dict_file_term[term]).add(partial_file_name)
-            index_0 = (self.dict_file_term[term]).index_files(partial_file_name)
+            index_0 = (self.dict_file_term[term]).index(partial_file_name)
             (self.dict_term_pl[term]).insert(index_0, pl)
         return True
 
@@ -299,7 +299,7 @@ class Index:
             self.dict_term_pl[term] = [pl]
         else:
             (self.dict_file_term[term]).add(ifilename)
-            index_0 = (self.dict_file_term[term]).index_files(ifilename)
+            index_0 = (self.dict_file_term[term]).index(ifilename)
             (self.dict_term_pl[term]).insert(index_0,pl)
         self.remove_lines_from_last_cursor_position(f) # we remove the two lines we just read
         return True
