@@ -155,15 +155,25 @@ class Index:
             self._partial_files_names.append(filename)
 
     # TODO
-    # def save_index(self):
-    #     """ X """
-    #
-    #     if self.indexed:
-    #         if self.in_memory:
-    #             for term in self.inv_index:
-    #
-    #     else:
-    #         print "Can't save index if nothing has been idexed !"
+    def save_index(self):
+        """ X """
+
+        if self.indexed:
+            if self.in_memory:
+                with open('InvertedFile', "a+") as inverted_file:
+                    for term in self.inv_index:
+                        text_pl = ""
+                        for doc_id, score in self.inv_index[term].iteritems():
+                            text_pl += str(doc_id) + "," + str(score) + ";"
+                        inverted_file.write(text_pl + "\n")
+                        self.dict_terms_offset[term.rstrip()] = self.offset
+                        self.offset += 1
+                with open('Offsets', "w") as f:
+                    pickle.dump(self.dict_terms_offset, f)
+            else:
+                print "Can't save index if nothing has been idexed !"
+        else:
+            print "Can't save index if nothing has been idexed !"
 
 
     # TODO Changer le fonctionnement de dictFile

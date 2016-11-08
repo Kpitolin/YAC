@@ -233,6 +233,7 @@ if __name__=='__main__':
         index.index_files("../../latimes/la010189")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
+        index.save_index()
 
     query = raw_input("Entrez votre recherche : ")
     while(query != "exit"):
