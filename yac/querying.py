@@ -228,36 +228,41 @@ if __name__=='__main__':
     index = indexing.Index(memory_limit = 1000000)
     if not index.use_existing_index():
         start = time.clock()
-        index.index_files("../../latimes/la010189")
+        index.index_files("latimes/la010189")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
 
     query = raw_input("Entrez votre recherche : ")
     while(query != "exit"):
         # print "Resutat recherche disjonctive:"
+        start = time.clock()
         print "Requetage naif disjonctif :"
         dic_of_docs = query_with_naive_disj_algo(index, query)
         sort_and_print_dict(dic_of_docs)
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end-start)
         print "Requetage threshold disjonctif :"
+        start = time.clock()
         top_k = query_with_threshold_algo(index, query, 50)
         if top_k:
             print top_k
         else:
             print "No result for threshold disjunctive."
-
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end-start)
         print "Requetage naif conjonctif :"
+        start = time.clock()
         dic_of_docs = query_with_naive_conj_algo(index, query)
         sort_and_print_dict(dic_of_docs)
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end-start)
         print "Requetage threshold conjonctif :"
+        start = time.clock()
         top_k = query_with_threshold_algo(index, query, 50, disj=False)
         if top_k:
             print top_k
         else:
             print "No result for threshold disjunctive."
         query = raw_input("Entrez votre recherche : ")
-
-
-
-    #Token recherche conjonctive ("ET")
-    #query = raw_input("Entrez votre recherche disjonctive: ")
-    #findDocsSortedByScoreConj(inverted_index,query)
+        end = time.clock()
+        print "Elapsed Time: {} seconds".format(end-start)
