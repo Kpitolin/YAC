@@ -263,6 +263,6 @@ if __name__=='__main__':
             print top_k
         else:
             print "No result for threshold disjunctive."
-        query = raw_input("Entrez votre recherche : ")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end-start)
+        query = raw_input("Entrez votre recherche : ")
