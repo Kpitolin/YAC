@@ -62,8 +62,7 @@ The inner dictionnary is structured that way : ```{doc_id:score}``` both are int
 
 ## How do I test it?
 
-You can run all tests by executing this command at project root:
-    python -m unittest discover
+You can run all tests by executing this command at project root: ```python -m unittest discover```
 Another way would be running the tests module by module following this format :  ```python -m unittest package.module_name```.
 
 For example, here, we run all tests of the test_indexing module (tests package):
