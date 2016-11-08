@@ -33,9 +33,9 @@ def text_to_pl(text):
 
     pl = {}
     pair_list = text.rstrip().split(";")[:-1]
-    for index in range(len(pair_list)):
-        pair = pair_list[index].split(",")
-        pl[pair[0]] = float(pair[1])
+    for item in pair_list:
+        doc_id, score = item.split(",")
+        pl[doc_id] = float(score)
     return pl
 
 def query_with_threshold_algo(index, query, k, disj=True):
@@ -110,7 +110,10 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj):
                                 top_k.pop(0)
                                 top_k.append((doc, score))
                                 top_k.sort(key=lambda x: x[1])
-                    smallest_score = top_k[0][1]
+                    if len(top_k):
+                        smallest_score = top_k[0][1]
+                    else:
+                        smallest_score = 0
     return top_k
 
 ########## NAIVE ALGORITHM DISJUNCTIVE ##########
@@ -118,28 +121,27 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj):
 def query_with_naive_disj_algo(index, query):
     """ X """
 
+    terms = set(get_terms(query))
     if index.indexed:
         if index.in_memory:
-            return naive_disj_algo(index.inv_index, query)
+            return naive_disj_algo(index.inv_index, terms)
         else:
             # Reconstruction of an in-memory inverted index from the file InvertedFile, containing the terms of the query
-            terms = get_terms(query)
             inv_index_reconstructed = {}
             for term in terms:
                 if term in index.dict_terms_offset:
                     offset = index.dict_terms_offset[term]
                     line = linecache.getline("InvertedFile", offset)
                     inv_index_reconstructed[term] = text_to_pl(line)
-            return naive_disj_algo(inv_index_reconstructed, query)
+            return naive_disj_algo(inv_index_reconstructed, terms)
     else:
         print "No index in memory nor loaded from file."
     return False
 
 #Token recherche disjonctive ("OU")
-def naive_disj_algo(inverted_index, query):
+def naive_disj_algo(inverted_index, terms):
     """ Returns a dict {doc id: score} where score is the sum of scores for each term of the query present in the document """
 
-    terms = set(get_terms(query))
     results = {}
     for term in terms:
         if term in inverted_index:
@@ -156,28 +158,28 @@ def naive_disj_algo(inverted_index, query):
 def query_with_naive_conj_algo(index, query):
     """ X """
 
+    terms = set(get_terms(query))
     if index.indexed:
         if index.in_memory:
-            return naive_conj_algo(index.inv_index, query)
+            return naive_conj_algo(index.inv_index, terms)
         else:
             # Reconstruction of an in-memory inverted index from the file InvertedFile, containing the terms of the query
-            terms = get_terms(query)
             inv_index_reconstructed = {}
             for term in terms:
                 if term in index.dict_terms_offset:
                     offset = index.dict_terms_offset[term]
                     line = linecache.getline("InvertedFile", offset)
                     inv_index_reconstructed[term] = text_to_pl(line)
-            return naive_conj_algo(inv_index_reconstructed, query)
+            return naive_conj_algo(inv_index_reconstructed, terms)
     else:
         print "No index in memory nor loaded from file."
     return False
 
 #Token recherche conjonctive ("ET")
-def naive_conj_algo(inverted_index, query):
+def naive_conj_algo(inverted_index, terms):
     """ Returns a dict {doc id: score} where score is the sum of scores for each term. Every term of the query must be in the document """
 
-    terms = get_terms(query)
+    terms = list(terms)
     if terms[0] not in inverted_index:
         print "Term '" + terms[0] + "' not found."
         return {}
@@ -228,7 +230,7 @@ if __name__=='__main__':
     index = indexing.Index(memory_limit = 1000000)
     if not index.use_existing_index():
         start = time.clock()
-        index.index_files("latimes/la010189")
+        index.index_files("../../latimes/la010189")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
 
@@ -243,7 +245,7 @@ if __name__=='__main__':
         print "Elapsed Time: {} seconds".format(end-start)
         print "Requetage threshold disjonctif :"
         start = time.clock()
-        top_k = query_with_threshold_algo(index, query, 50)
+        top_k = query_with_threshold_algo(index, query, 10)
         if top_k:
             print top_k
         else:
@@ -258,7 +260,7 @@ if __name__=='__main__':
         print "Elapsed Time: {} seconds".format(end-start)
         print "Requetage threshold conjonctif :"
         start = time.clock()
-        top_k = query_with_threshold_algo(index, query, 50, disj=False)
+        top_k = query_with_threshold_algo(index, query, 10, disj=False)
         if top_k:
             print top_k
         else:

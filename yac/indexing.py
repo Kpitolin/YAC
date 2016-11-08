@@ -154,13 +154,16 @@ class Index:
         if len(sorted_terms) > 0:
             self._partial_files_names.append(filename)
 
+    # TODO
     # def save_index(self):
+    #     """ X """
+    #
     #     if self.indexed:
     #         if self.in_memory:
     #             for term in self.inv_index:
     #
     #     else:
-    #         print "Can't save index if it has not been idexed !"
+    #         print "Can't save index if nothing has been idexed !"
 
 
     # TODO Changer le fonctionnement de dictFile
@@ -279,9 +282,9 @@ class Index:
             lines = text.splitlines(False)
         for line in lines:
             pair_list = text.rstrip().split(";")[:-1]
-            for index in range(len(pair_list)):
-                pair = pair_list[index].split(",")
-                pair_list[index] = (pair[0],pair[1])
+            for index, item in enumerate(pair_list):
+                doc_id, score = item.split(",")
+                pair_list[index] = (doc_id, score)
         return pair_list
 
     ########## UNUSED FUNCTIONS ##########
