@@ -11,7 +11,6 @@ from blist import sorteddict, sortedlist
 import tokenization
 import score
 
-
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
 PATTERN_DOC_END = r"</DOC>"
 
@@ -58,7 +57,7 @@ class Index:
             self.update_scores_with_idf()
         else:
             self.write_partial_index() # Write the last file
-            self.merge_partial_indexs()
+            self.merge_partial_indexes()
         self.indexed = True
         return self.indexed
 
@@ -70,7 +69,7 @@ class Index:
             self.update_scores_with_idf()
         else:
             self.write_partial_index() # Write the last file
-            self.merge_partial_indexs()
+            self.merge_partial_indexes()
         self.indexed = True
         return self.indexed
 
@@ -164,14 +163,13 @@ class Index:
 
 
     # TODO Changer le fonctionnement de dictFile
-    def merge_partial_indexs(self):
+    def merge_partial_indexes(self, nb_of_pl_to_read = 100):
         """ "It reads the ith term of each file, find the lowest term (alphabetical order)
         and updates a data structure [filename : <term, line>] ordered by term and filename
         Calls save_final_pl_to_file
 
         dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
         """
-
         term = ''
         dictFileLine = {}
         #fileFinished=list()#
@@ -181,18 +179,19 @@ class Index:
                 self.read_terms_from_i_file(file_content, partial_file_name)
                 dictFileLine[partial_file_name] = file_content.tell()
         # Pop the first term of the dictionary and update the dic by reading the following lines of the file
-        while bool(self.dict_file_term):
+        while bool(self.dict_file_term) and bool(dictFileLine):
             term, partial_files_names = self.dict_file_term.popitem() # Returns the pair <term, [filename]> with the lowest key (sorteddict)
-            pl = self.dict_term_pl[term]
+            pl = self.dict_term_pl.pop(term)
             if self.write_merged_pl(term, pl):
                 for partial_file_name in partial_files_names:
                     file_content = open(partial_file_name, "r+")
-                    if partial_file_name in dictFileLine:
+                    if partial_file_name in dictFileLine.keys():
                         file_content.seek(dictFileLine[partial_file_name])
-                    if not self.read_terms_from_i_file(file_content, partial_file_name):
+                    if not self.read_terms_from_i_file(file_content, partial_file_name,nb_of_pl_to_read):
                         file_content.close()
                         del file_content
-                        del dictFileLine[partial_file_name]
+                        if partial_file_name in dictFileLine.keys():
+                            del dictFileLine[partial_file_name]
                     else:
                         dictFileLine[partial_file_name] = file_content.tell()
             else:
@@ -201,23 +200,27 @@ class Index:
         with open('Offsets', "w") as f:
             pickle.dump(self.dict_terms_offset, f)
 
-    def read_terms_from_i_file(self, f, partial_file_name):
+    def read_terms_from_i_file(self, f, partial_file_name, nb_of_pairs_to_handle = 1):
         """ X """
 
         pattern_term = r"-?<?/?\w+"
-        term = f.readline()
-        pl = f.readline().rstrip()
-        if len(term) != 0 and not re.match(pattern_term, term):
-            return self.read_terms_from_i_file(f, partial_file_name) # if we didn't find a term, we try again until end of file
-        elif len(term) == 0 :
-            return False
-        if term not in self.dict_file_term.keys():
-            self.dict_file_term[term] = sortedlist([partial_file_name])
-            self.dict_term_pl[term] = [pl]
-        else:
-            (self.dict_file_term[term]).add(partial_file_name)
-            index_0 = (self.dict_file_term[term]).index(partial_file_name)
-            (self.dict_term_pl[term]).insert(index_0, pl)
+        while nb_of_pairs_to_handle > 0:
+            term = f.readline()
+            pl = f.readline().rstrip()
+            if len(term) != 0 and not re.match(pattern_term, term):
+                return self.read_terms_from_i_file(f, partial_file_name,nb_of_pairs_to_handle) # if we didn't find a term, we try again until end of file
+            elif len(term) == 0 :
+                return False
+            if term not in self.dict_file_term.keys():
+                self.dict_file_term[term] = sortedlist([partial_file_name])
+                self.dict_term_pl[term] = [pl]
+            else:
+                if partial_file_name not in self.dict_file_term[term]:
+                    (self.dict_file_term[term]).add(partial_file_name)
+                index_0 = (self.dict_file_term[term]).index(partial_file_name)
+                (self.dict_term_pl[term]).insert(index_0, pl)
+            nb_of_pairs_to_handle -= 1
+
         return True
 
     def write_merged_pl(self, term, pl):
@@ -333,7 +336,7 @@ class Index:
 
     def read_terms_in_file_line_dic(self):
         """It reads the ith term of each file, find the lowest term (alphabetical order)
-            and updates a data structure [filename : <term, line>] ordered by term and filename
+            and updates a data structure [filename : <term>] ordered by term and filename
             Calls save_final_pl_to_file
 
             dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved

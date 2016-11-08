@@ -34,7 +34,7 @@ class IndexingTestCase(unittest.TestCase):
 
 	def tearDown(self):
 		folderpath= "."
-		pattern_file_title =  r"partialIndex*"
+		pattern_file_title =  r"(partialIndex*|InvertedFile|Offsets)"
 		files = [join(folderpath, f) for f in listdir(folderpath) if isfile(join(folderpath, f)) and re.match(pattern_file_title, f)]
 		for filename in files:
 			self.delete_file(filename)
@@ -53,6 +53,7 @@ class IndexingTestCase(unittest.TestCase):
 		self._index.index_documents(stringNormalOneDoc)
 		self.assertEqual(self._index._partial_files_names, [])
 		self.assertEqual(self._index.inv_index, resultedIndex)
+		
 
 	def test_indexing_string_memory_two_docs(self):
 
@@ -140,7 +141,6 @@ class IndexingTestCase(unittest.TestCase):
 		<DOCID> 2 </DOCID>
 		the onset of "the new Gorbachev"!
 		</DOC>"""
-
 	 	resultedIndex = { "<docid>":{1:1.0/11, 2:1.0/11}, "</docid>":{1:1.0/11, 2:1.0/11},  "<doc>":{1:1.0/11, 2:1.0/11}, "</doc>": {1:1.0/11, 2:1.0/11}, "1": {1:1.0/11}, "2": {2:1.0/11}, "the": {1:2.0/11, 2:2.0/11}, "onset": {1:1.0/11, 2:1.0/11}, "of":{1:1.0/11, 2:1.0/11}, "new":{1:1.0/11, 2:1.0/11},"gorbachev":{1:1.0/11, 2:1.0/11}}
 		self._index.index_text(stringNormalDoc, False)
 		self.assertNotEqual(self._index._partial_files_names, [])
