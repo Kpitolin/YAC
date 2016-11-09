@@ -9,6 +9,17 @@ Yac is a textfile crawler. It allows you to query a file or a set of file format
 {Here content organized in HTML tags} 
 </DOC>
 ```
+## How does it work ?
+
+The general steps of YAC are as follows:
+
+1. Tokenizes the text in file (we have two methods but for now, we use split and remove the punctuation)
+- Creates and inverted index
+- Computes final scores of each term
+- Searches in inverted index most relevant docs from terms in query
+- Sorts them and prints the result
+
+We use different methods for both tokenization, indexing and querying. Those details will be discussed in a document named Implementation Details. 
 
 ## How do I install it?
 Install [**Python 2.7**](https://www.python.org/download/releases/2.7/)
@@ -17,6 +28,7 @@ You must install the following packages to get going :
 
 - nltk
 - blist
+- docopt
 
 Follow the instructions [here](http://www.nltk.org/install.html) for nltk.
 
@@ -31,16 +43,18 @@ In python, execute
 
 And it should install.
 
+Then execute ```pip install blist``` and ```pip install docopt```.
 
-Then execute ```pip install blist```.
 ## How do I use it?
 At project root, execute python yac/main.py
 You can prompt either : 
 
-    > index [-scrt ] <path>
+    > index [-scrt ] <path> [-m <memory_limit>]
     > load
     > query (-a | -o | -e | -d) <query>...
     > help
+
+Basic usage being : you index then you query. If you just started the program, have an index file (InvertedFile) and an offset file (Offsets) you can load them into memory to then query.
 
 To Index, you can add one or a combination of this options:
 
@@ -59,27 +73,9 @@ To query you should pick one of this options:
 
 If you ever forget, you can always prompt help ! 
 
-###Programmatically
-The steps :
-
-1. Tokenize the text in file (we have two methods but for now, we use split and remove the punctuation)
-- Create inverted index
-- Compute final scores of each term
-- Search in inverted index most relevant docs from terms in query
-- Sort them and print the result
-
-Example of inverted index : ```{ "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}```.
-The inner dictionnary is structured that way : ```{doc_id:score}``` both are int for now
-    
-    index = indexing.Index("pathToFileORfilepathFormat") # Object initialization
-    index.createIndexFromFileFormat() # 1 + 2
-    index.calculate_all_scores_memory() # 3
-    query = raw_input("Entrez votre recherche disjonctive: ")
-    print "Resutat recherche disjonctive:"
-    dicOfDocs = querying.findDocsDisj(index.inv_index, query) # 4
-    querying.sortAndPrintDict(dicOfDocs) # 5
-
 ## How do I test it?
+
+**Before running the tests, beware of something important. As tests generates a large number of files, all partial index files, offsets or inverted index will be removed from the directory from which the test are executed.**
 
 You can run all tests by executing this command at project root: ```python -m unittest discover```
 Another way would be running the tests module by module following this format :  ```python -m unittest package.module_name```.
