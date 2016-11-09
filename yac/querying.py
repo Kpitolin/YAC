@@ -236,7 +236,7 @@ if __name__=='__main__':
     index = indexing.Index(memory_limit = 1000000)
     if not index.use_existing_index():
         start = time.clock()
-        index.index_files("../../latimes/la*0189")
+        index.index_files("../latimes/la01*90")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
     index.save_index()

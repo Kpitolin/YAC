@@ -1,9 +1,9 @@
-"""Indexator
+"""Main
 
 Usage:
 > index [-scrt ] <path>
 > load
-> query [-a | -o | -e | -d] <query>...
+> query (-a | -o | -e | -d) <query>...
 > help
 
 Options:
@@ -13,8 +13,8 @@ Options:
 -c   Case sensitive
 -a   Make conjunctive request with naive algorithm
 -o   Make disjunctive request with naive algorithm
--af  Make conjunctive request with fagin algorithm
--of  Make disjunctive request with fagin algorithm
+-e  Make conjunctive request with fagin algorithm
+-d  Make disjunctive request with fagin algorithm
 """
 
 import time
@@ -31,7 +31,7 @@ if __name__=='__main__':
             command = raw_input(">")
             arguments = docopt(__doc__, argv=command)
             if arguments['index']:
-                filter_tags=False,
+                filter_tags=False
                 remove_stopwords=False
                 case_sensitive=False
                 with_stemming=False
@@ -81,6 +81,20 @@ if __name__=='__main__':
                     print "Elapsed Time: {} seconds".format(end-start)    
                 except NameError:
                     print "No existing index"
+            elif arguments['help']:
+                print("Usage:")
+                print("index [-scrt ] <path>load")
+                print("query (-a | -o | -e | -d) <query> ")
+                print("help")
+                print("Options:")
+                print("-t   Filter tags")
+                print("-s   With stemming")
+                print("-r   Remove stopword")
+                print("-c   Case sensitive")
+                print("-a   Make conjunctive request with naive algorithm")
+                print("-o   Make disjunctive request with naive algorithm")
+                print("-e  Make conjunctive request with fagin algorithm")
+                print("-d  Make disjunctive request with fagin algorithm)")
         except DocoptExit as e:
             print(e)            
             
