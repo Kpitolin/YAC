@@ -34,11 +34,30 @@ And it should install.
 
 Then execute ```pip install blist```.
 ## How do I use it?
-### From the command line
-For now,
+At project root, execute python yac/main.py
+You can prompt either : 
 
-1. modify the path of the file in `querying.py` line 62 to a file (or file format) in your path you want to query against. **Remember : it's the relative path from the directory you're in in the command line.**
-2. Once at project root, execute `python yac/querying.py`. It will prompt you to ask the terms of your query and print for all the documents `{doc id} : {score}` sorted by aggregation  of scores of terms in query
+    > index [-scrt ] <path>
+    > load
+    > query (-a | -o | -e | -d) <query>...
+    > help
+
+To Index, you can add one or a combination of this options:
+
+    -t   Filter tags
+    -s   With stemming
+    -r   Remove stopword
+    -c   Case sensitive
+
+To query you should pick one of this options: 
+
+    -a   Make conjunctive request with naive algorithm
+    -o   Make disjunctive request with naive algorithm
+    -e  Make conjunctive request with fagin algorithm
+    -d  Make disjunctive request with fagin algorithm
+
+
+If you ever forget, you can always prompt help ! 
 
 ###Programmatically
 The steps :
