@@ -157,7 +157,7 @@ class Index:
 
         if self.indexed:
             if self.in_memory:
-                with open('InvertedFile', "a+") as inverted_file:
+                with open('InvertedFile', "w") as inverted_file:
                     for term in self.inv_index:
                         text_pl = ""
                         for doc_id, score in self.inv_index[term].iteritems():
@@ -194,23 +194,24 @@ class Index:
                 else:
                     partial_files_by_last_term_read[last_term_read] = [filename]
         # Pop the first term of the dictionary and update the dic by reading the following lines of the file
-        while bool(self.dict_term_pl):
-            # Get first tem in alphabetical order and its pl
-            term, pl = self.dict_term_pl.popitem() # Returns the pair <term, pl> with the lowest key (sorteddict)
-            #print term
-            # Write the pl to InvertedFile and save the offset
-            self.write_merged_pl(term, pl)
-            # Need to get the following terms and their pl for the partial files which term was the last one read
-            if term in partial_files_by_last_term_read:
-                for filename in partial_files_by_last_term_read.pop(term):
-                    last_term_read, new_offset = self.read_terms_from_partial_file(filename, offsets_in_partial_files[filename], nb_of_pl_to_read)
-                    if new_offset > 0:
-                        offsets_in_partial_files[filename] = new_offset
-                        if last_term_read in partial_files_by_last_term_read:
-                            partial_files_by_last_term_read[last_term_read].append(filename)
-                        else:
-                            partial_files_by_last_term_read[last_term_read] = [filename]
-        # Save the offsets in a file
+        with open('InvertedFile', "w") as inverted_file:
+            while bool(self.dict_term_pl):
+                # Get first tem in alphabetical order and its pl
+                term, pl = self.dict_term_pl.popitem() # Returns the pair <term, pl> with the lowest key (sorteddict)
+                #print term
+                # Write the pl to InvertedFile and save the offset
+                self.write_merged_pl(term, pl, inverted_file)
+                # Need to get the following terms and their pl for the partial files which term was the last one read
+                if term in partial_files_by_last_term_read:
+                    for filename in partial_files_by_last_term_read.pop(term):
+                        last_term_read, new_offset = self.read_terms_from_partial_file(filename, offsets_in_partial_files[filename], nb_of_pl_to_read)
+                        if new_offset > 0:
+                            offsets_in_partial_files[filename] = new_offset
+                            if last_term_read in partial_files_by_last_term_read:
+                                partial_files_by_last_term_read[last_term_read].append(filename)
+                            else:
+                                partial_files_by_last_term_read[last_term_read] = [filename]
+            # Save the offsets in a file
         with open('Offsets', "w") as f:
             pickle.dump(self.dict_terms_offset, f)
 
@@ -236,15 +237,13 @@ class Index:
                     return (-1, "")
             return (term, f.tell())
 
-    def write_merged_pl(self, term, pl):
+    def write_merged_pl(self, term, pl, inverted_file):
         """ Writes the complete pl of term in the file containing the final Inverted Index """
 
-        list_pls = self.calculate_all_term_pl_scores(pl)
-
-        with open('InvertedFile', "a+") as inverted_file:
-            inverted_file.write(self.pair_list_to_text(list_pls)+"\n")
-            self.dict_terms_offset[term.rstrip()] = self.offset
-            self.offset += 1
+        list_pls = self.calculate_all_term_pl_scores(pl)    
+        inverted_file.write(self.pair_list_to_text(list_pls)+"\n")
+        self.dict_terms_offset[term.rstrip()] = self.offset
+        self.offset += 1
         return True
 
     def calculate_all_term_pl_scores(self, pl):

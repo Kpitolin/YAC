@@ -56,7 +56,6 @@ if __name__=='__main__':
                     print("No Index to be load, create Index!")
             elif arguments['query']:
                 query = arguments["<query>"]
-                print(query)
                 try: 
                     start = time.clock()
                     if arguments['-a'] == True:
