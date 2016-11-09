@@ -30,7 +30,7 @@ class Index:
 
 
     def __init__(self, memory_limit = 1000000, filter_tags=False, remove_stopwords=False, case_sensitive=False, with_stemming=False):
-         self.memory_limit = memory_limit # Max size of self.inv_index in bytes, if reached it we use merge-based methode
+        self.memory_limit = memory_limit # Max size of self.inv_index in bytes, if reached it we use merge-based methode
         self.filter_tags = filter_tags
         self.inv_index = {} # Contains the whole index in in-memory mode
         self.remove_stopwords = remove_stopwords

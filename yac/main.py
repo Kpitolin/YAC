@@ -1,7 +1,7 @@
 """Main
 
 Usage:
-> index [-scrt ] <path>
+> index [-scrt ] <path> [-m <memory_limit>]
 > load
 > query (-a | -o | -e | -d) <query>...
 > help
@@ -30,6 +30,7 @@ if __name__=='__main__':
         try:
             command = raw_input(">")
             arguments = docopt(__doc__, argv=command)
+            memory_limit = 1000000 # 1GB is default
             if arguments['index']:
                 filter_tags=False
                 remove_stopwords=False
@@ -43,13 +44,18 @@ if __name__=='__main__':
                     case_sensitive=True
                 if arguments['-s'] == True:
                     with_stemming=True
-                index = Index(1000000, filter_tags, remove_stopwords, case_sensitive, with_stemming)    
+                if arguments['-m'] == True:
+                    try:
+                        memory_limit = int(arguments["<memory_limit>"])
+                    except ValueError:
+                        print "Unexpected memory limit parameter. It should be an int."
+                index = Index(memory_limit, filter_tags, remove_stopwords, case_sensitive, with_stemming)    
                 start = time.clock()
                 index.index_files(arguments["<path>"])
                 end = time.clock()
                 print "Elapsed Time: {} seconds".format(end - start)
             elif arguments['load']:    
-                index = Index(1000000, False, False, False, False)
+                index = Index(memory_limit, False, False, False, False)
                 if index.use_existing_index():
                     print("Index loaded")
                 else :
@@ -83,7 +89,8 @@ if __name__=='__main__':
                     print "No existing index"
             elif arguments['help']:
                 print("Usage:")
-                print("index [-scrt ] <path>load")
+                print("index [-scrt ] <path> [-m <memory_limit>]")
+                print("load")
                 print("query (-a | -o | -e | -d) <query> ")
                 print("help")
                 print("Options:")
