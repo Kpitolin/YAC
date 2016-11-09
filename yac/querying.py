@@ -44,8 +44,8 @@ def query_with_threshold_algo(index, query, k, disj=True):
     if index.indexed:
         sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
         sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
-        terms = [] # Termes de la requete presents dans l'inverted index
         query_terms = set(get_terms(query))
+        terms = [] # Termes de la requete presents dans l'inverted index
         # Construction des deux indexs : tries par document et par score
         if index.in_memory:
             for term in query_terms:
@@ -53,6 +53,9 @@ def query_with_threshold_algo(index, query, k, disj=True):
                     terms.append(term)
                     sorted_by_docs[term] = index.inv_index[term]
                     sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
+                elif not disj:
+                    print "Term '" + term + "' not found."
+                    return {}
         else:
             for term in query_terms:
                 if term in index.dict_terms_offset:
@@ -60,13 +63,16 @@ def query_with_threshold_algo(index, query, k, disj=True):
                     text = linecache.getline('InvertedFile', index.dict_terms_offset[term])
                     sorted_by_docs[term] = text_to_pl(text)
                     sorted_by_scores[term] = sorted(sorted_by_docs[term], key=sorted_by_docs[term].__getitem__, reverse=True)
+                elif not disj:
+                    print "Term '" + term + "' not found."
+                    return {}
         if len(terms) > 0:
             return threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj)
         else:
             print "None of the query terms has been found."
     else:
         print "No index in memory nor loaded from file."
-    return False
+    return {}
 
 
 def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj):
@@ -191,12 +197,12 @@ def naive_conj_algo(inverted_index, terms):
     #
     for term in terms:
         if term in inverted_index:
-                docs = list(remaining_docs)
-                for doc in docs:
-                    if doc in inverted_index[term]:
-                        scores[doc] += inverted_index[term][doc]
-                    else:
-                        remaining_docs.remove(doc)
+            docs = list(remaining_docs)
+            for doc in docs:
+                if doc in inverted_index[term]:
+                    scores[doc] += inverted_index[term][doc]
+                else:
+                    remaining_docs.remove(doc)
         else:
             print "Term '" + term + "' not found."
             return {}
@@ -233,7 +239,7 @@ if __name__=='__main__':
         index.index_files("../../latimes/la010189")
         end = time.clock()
         print "Elapsed Time: {} seconds".format(end - start)
-        index.save_index()
+    index.save_index()
 
     query = raw_input("Entrez votre recherche : ")
     while(query != "exit"):

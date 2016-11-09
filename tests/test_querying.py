@@ -24,19 +24,19 @@ class QueryingTestCase(unittest.TestCase):
 
 		query = "The most beautiful thing of all times !"
 		self.assertEqual(querying.get_terms(query,True), ["beautiful","thing","times"])
-	
+
 
 	def test_get_terms_case_insensitive(self):
 
 		query = "The Most BeauTiful Thing oF All Times !"
 		self.assertEqual(querying.get_terms(query,False, False), ["the", "most", "beautiful","thing", "of", "all","times"])
-	
+
 
 	def test_get_terms_case_sensitive(self):
 
 		query = "The Most BeauTiful Thing oF All Times !"
 		self.assertEqual(querying.get_terms(query,False, True), ["The", "Most", "BeauTiful","Thing", "oF", "All","Times"])
-	
+
 	def test_get_terms_stemming(self):
 
 		query = "The Most BeauTiful Thing oF All Times !"

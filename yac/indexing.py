@@ -30,7 +30,7 @@ class Index:
 
 
     def __init__(self, memory_limit = 1000000, filter_tags=False, remove_stopwords=False, case_sensitive=False, with_stemming=False):
-        self.memory_limit = memory_limit # Max size of self.inv_index in bytes, if reached in merge-based mode it is saved in file
+        self.memory_limit = memory_limit # Max size of self.inv_index in bytes, if reached it we use merge-based methode
         self.filter_tags = filter_tags
         self.inv_index = {} # Contains the whole index in in-memory mode
         self.remove_stopwords = remove_stopwords
@@ -43,8 +43,7 @@ class Index:
         self.dict_terms_offset = dict() # Keep the line where each term is in InvertedFile
         self.offset = 1;
 
-        self.dict_file_term = sorteddict()
-        self.dict_term_pl = dict()
+        self.dict_term_pl = sorteddict() # Used in merging
 
 
     def index_files(self, file_path_format):
@@ -153,7 +152,6 @@ class Index:
         if len(sorted_terms) > 0:
             self._partial_files_names.append(filename)
 
-    # TODO
     def save_index(self):
         """ X """
 
@@ -170,71 +168,73 @@ class Index:
                 with open('Offsets', "w") as f:
                     pickle.dump(self.dict_terms_offset, f)
             else:
-                print "Can't save index if nothing has been idexed !"
+                print "The index has already been saved."
         else:
             print "Can't save index if nothing has been idexed !"
 
 
-    # TODO Changer le fonctionnement de dictFile
     def merge_partial_indexes(self, nb_of_pl_to_read = 100):
         """ "It reads the ith term of each file, find the lowest term (alphabetical order)
         and updates a data structure [filename : <term, line>] ordered by term and filename
         Calls save_final_pl_to_file
 
-        dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
+
         """
         term = ''
-        dictFileLine = {}
-        #fileFinished=list()#
-        # Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-        for partial_file_name in self._partial_files_names:
-            with open(partial_file_name, "r+") as file_content:
-                self.read_terms_from_i_file(file_content, partial_file_name)
-                dictFileLine[partial_file_name] = file_content.tell()
+        offsets_in_partial_files = {}
+
+        partial_files_by_last_term_read = {}
+        # Initialization
+        for filename in self._partial_files_names:
+            last_term_read, new_offset = self.read_terms_from_partial_file(filename, 0, nb_of_pl_to_read)
+            if new_offset > 0:
+                offsets_in_partial_files[filename] = new_offset
+                if last_term_read in partial_files_by_last_term_read:
+                    partial_files_by_last_term_read[last_term_read].append(filename)
+                else:
+                    partial_files_by_last_term_read[last_term_read] = [filename]
         # Pop the first term of the dictionary and update the dic by reading the following lines of the file
-        while bool(self.dict_file_term) and bool(dictFileLine):
-            term, partial_files_names = self.dict_file_term.popitem() # Returns the pair <term, [filename]> with the lowest key (sorteddict)
-            pl = self.dict_term_pl.pop(term)
-            if self.write_merged_pl(term, pl):
-                for partial_file_name in partial_files_names:
-                    file_content = open(partial_file_name, "r+")
-                    if partial_file_name in dictFileLine.keys():
-                        file_content.seek(dictFileLine[partial_file_name])
-                    if not self.read_terms_from_i_file(file_content, partial_file_name,nb_of_pl_to_read):
-                        file_content.close()
-                        del file_content
-                        if partial_file_name in dictFileLine.keys():
-                            del dictFileLine[partial_file_name]
-                    else:
-                        dictFileLine[partial_file_name] = file_content.tell()
-            else:
-                return False
+        while bool(self.dict_term_pl):
+            # Get first tem in alphabetical order and its pl
+            term, pl = self.dict_term_pl.popitem() # Returns the pair <term, pl> with the lowest key (sorteddict)
+            #print term
+            # Write the pl to InvertedFile and save the offset
+            self.write_merged_pl(term, pl)
+            # Need to get the following terms and their pl for the partial files which term was the last one read
+            if term in partial_files_by_last_term_read:
+                for filename in partial_files_by_last_term_read.pop(term):
+                    last_term_read, new_offset = self.read_terms_from_partial_file(filename, offsets_in_partial_files[filename], nb_of_pl_to_read)
+                    if new_offset > 0:
+                        offsets_in_partial_files[filename] = new_offset
+                        if last_term_read in partial_files_by_last_term_read:
+                            partial_files_by_last_term_read[last_term_read].append(filename)
+                        else:
+                            partial_files_by_last_term_read[last_term_read] = [filename]
         # Save the offsets in a file
         with open('Offsets', "w") as f:
             pickle.dump(self.dict_terms_offset, f)
 
-    def read_terms_from_i_file(self, f, partial_file_name, nb_of_pairs_to_handle = 1):
+    # TODO Verefier qu on arrive bien a la fin des fichier partiels
+    def read_terms_from_partial_file(self, partial_file_name, offset, nb_of_pairs_to_handle = 1):
         """ X """
 
-        pattern_term = r"-?<?/?\w+"
-        while nb_of_pairs_to_handle > 0:
-            term = f.readline()
-            pl = f.readline().rstrip()
-            if len(term) != 0 and not re.match(pattern_term, term):
-                return self.read_terms_from_i_file(f, partial_file_name,nb_of_pairs_to_handle) # if we didn't find a term, we try again until end of file
-            elif len(term) == 0 :
-                return False
-            if term not in self.dict_file_term.keys():
-                self.dict_file_term[term] = sortedlist([partial_file_name])
-                self.dict_term_pl[term] = [pl]
-            else:
-                if partial_file_name not in self.dict_file_term[term]:
-                    (self.dict_file_term[term]).add(partial_file_name)
-                index_0 = (self.dict_file_term[term]).index(partial_file_name)
-                (self.dict_term_pl[term]).insert(index_0, pl)
-            nb_of_pairs_to_handle -= 1
+        with open(partial_file_name, "r+") as f:
+            f.seek(offset)
 
-        return True
+            pattern_term = r"-?<?/?\w+" # TODO : Ca devrait etre gere par la tokenisation
+            term = ""
+            while nb_of_pairs_to_handle > 0:
+                term = f.readline()
+                pl = f.readline().rstrip()
+                if re.match(pattern_term, term):
+                    if term not in self.dict_term_pl.keys():
+                        self.dict_term_pl[term] = [pl]
+                    else:
+                        self.dict_term_pl[term].append(pl)
+                    nb_of_pairs_to_handle -= 1
+                elif len(term) == 0 :
+                    return (-1, "")
+            return (term, f.tell())
 
     def write_merged_pl(self, term, pl):
         """ Writes the complete pl of term in the file containing the final Inverted Index """
