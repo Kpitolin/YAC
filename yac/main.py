@@ -3,7 +3,7 @@
 Usage:
 > index [-scrt ] <path> [-m <memory_limit>]
 > load
-> query (-a | -o | -e | -d) <query>...
+> query [-scr ] (-a | -o | -e | -d) <query>...
 > help
 
 Options:
@@ -64,34 +64,44 @@ if __name__=='__main__':
                 query = arguments["<query>"]
                 try: 
                     start = time.clock()
+                    remove_stopwords=False
+                    case_sensitive=False
+                    with_stemming=False
+                    if arguments['-r'] == True:
+                        remove_stopwords=True
+                    if arguments['-c'] == True:
+                        case_sensitive=True
+                    if arguments['-s'] == True:
+                        with_stemming=True
+
                     if arguments['-a'] == True:
-                        dic_of_docs = query_with_naive_conj_algo(index, " ".join(query))
+                        dic_of_docs = query_with_naive_conj_algo(index, " ".join(query), remove_stopwords, case_sensitive,with_stemming)
                         sort_and_print_dict(dic_of_docs)
                        
                     elif arguments['-e'] == True:
-                        top_k = query_with_threshold_algo(index, " ".join(query), 50, disj=False)
+                        top_k = query_with_threshold_algo(index, " ".join(query), 50, False, remove_stopwords, case_sensitive,with_stemming)
                         if top_k:
-                            print top_k
+                            print sort_and_print_pair_list(top_k)
                         else:
                             print "No result for threshold disjunctive."
                     elif arguments['-d'] == True:
-                        top_k = query_with_threshold_algo(index, " ".join(query), 50)
+                        top_k = query_with_threshold_algo(index, " ".join(query), 50, True,remove_stopwords, case_sensitive,with_stemming)
                         if top_k:
-                            print top_k
+                            print sort_and_print_pair_list(top_k)
                         else:
                             print "No result for threshold disjunctive."
                     else:
-                        dic_of_docs = query_with_naive_disj_algo(index, " ".join(query))
+                        dic_of_docs = query_with_naive_disj_algo(index, " ".join(query), remove_stopwords, case_sensitive,with_stemming)
                         sort_and_print_dict(dic_of_docs)
                     end = time.clock()
                     print "Elapsed Time: {} seconds".format(end-start)    
-                except NameError:
-                    print "No existing index"
+                except NameError as e:
+                    print "No existing index : {}".format(e)
             elif arguments['help']:
                 print("Usage:")
                 print("index [-scrt ] <path> [-m <memory_limit>]")
                 print("load")
-                print("query (-a | -o | -e | -d) <query> ")
+                print("query [-scr ] (-a | -o | -e | -d) <query> ")
                 print("help")
                 print("Options:")
                 print("-t   Filter tags")

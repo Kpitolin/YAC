@@ -51,10 +51,10 @@ You can prompt either :
 
     > index [-scrt ] <path> [-m <memory_limit>]
     > load
-    > query (-a | -o | -e | -d) <query>...
+    > query [-scr ] (-a | -o | -e | -d) <query>...
     > help
 
-Basic usage being : you index then you query. If you just started the program, have an index file (InvertedFile) and an offset file (Offsets) you can load them into memory to then query.
+Basic usage being : you index then you query. If you just started the program, have an index file (InvertedFile) and an offset file (Offsets) you can load them into memory to then query. You must specify the same tokenization option in the index and the query command for the result to be relevant.
 
 To Index, you can add one or a combination of this options:
 

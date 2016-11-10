@@ -155,7 +155,7 @@ class IndexingTestCase(unittest.TestCase):
 		</DOC>"""
 
 		index = indexing.Index()
-		self.memory_limit = 1
+		self.memory_limit = 250000
 		partial_index = index.index_text(stringNormalDoc, False)
 		self.assertNotEqual(index._partial_files_names, [])
 		resultingTextFile = "1\n1,0.0909090909091;\n</doc>\n1,0.0909090909091;\n</docid>\n1,0.0909090909091;\n<doc>\n1,0.0909090909091;\n<docid>\n1,0.0909090909091;\ngorbachev\n1,0.0909090909091;\nnew\n1,0.0909090909091;\nof\n1,0.0909090909091;\nonset\n1,0.0909090909091;\nthe\n1,0.181818181818;\n"
@@ -210,30 +210,26 @@ class IndexingTestCase(unittest.TestCase):
 	def test_read_terms_from_partial_file_empty(self):
 		with open('partialIndex1', "w") as ifile:
 			ifile.write("  ")
-		with open('partialIndex1', "r") as ifile:
-			self.assertFalse(self._index.read_terms_from_partial_file(ifile, "partialIndex1"))
+		self.assertEqual(self._index.read_terms_from_partial_file("partialIndex1",0), (-1, ""))
 
 	def test_read_terms_from_partial_file_one_term(self):
 		with open('partialIndex2', "w") as ifile:
 			ifile.write("</doc>")
-		with open('partialIndex2', "r") as ifile:
-			self.assertTrue(self._index.read_terms_from_partial_file(ifile, "partialIndex2"))
+		self.assertEqual(self._index.read_terms_from_partial_file("partialIndex2",0),("</doc>",6))
 
 	def test_read_terms_from_partial_file_one_term_one_pl(self):
 		with open('partialIndex3', "w") as ifile:
 			ifile.write("term" + "\n")
 			ifile.write("posting List" + "\n")
-		with open('partialIndex3', "r") as ifile:
-			self.assertTrue(self._index.read_terms_from_partial_file(ifile, "partialIndex3"))
+		self.assertEqual(self._index.read_terms_from_partial_file("partialIndex3",0), ("term\n",18))
 
 
 	def test_read_terms_from_partial_file_one_term_reached_end(self):
 		with open('partialIndex4', "w") as ifile:
 			ifile.write("term" + "\n")
 			ifile.write("posting List" + "\n")
-		with open('partialIndex4', "r") as ifile:
-			self._index.read_terms_from_partial_file(ifile, "partialIndex4")
-			self.assertFalse(self._index.read_terms_from_partial_file(ifile, "partialIndex4"))
+		(term, offset) = self._index.read_terms_from_partial_file("partialIndex4",0)
+		self.assertEqual(self._index.read_terms_from_partial_file("partialIndex4",offset), (-1, ""))
 
 
 	def test_remove_line_from_file_start_2_lines(self):

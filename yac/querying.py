@@ -38,13 +38,13 @@ def text_to_pl(text):
         pl[doc_id] = float(score)
     return pl
 
-def query_with_threshold_algo(index, query, k, disj=True):
+def query_with_threshold_algo(index, query, k, disj=True, remove_stopwords=False, case_sensitive=False, with_stemming=False):
     """ Prepares sorted_by_docs and sorted_by_scores for threshold_algo() and calls it """
 
     if index.indexed:
         sorted_by_docs = {} # Extrait de l'inverted index ne contenant que les termes de la requete
         sorted_by_scores = {} # Dictionnaire qui associe aux termes de la requete la liste des documents dans laquelle ils apparaissent triee par score decroissant
-        query_terms = set(get_terms(query))
+        query_terms = set(get_terms(query, remove_stopwords, case_sensitive, with_stemming))
         terms = [] # Termes de la requete presents dans l'inverted index
         # Construction des deux indexs : tries par document et par score
         if index.in_memory:
@@ -124,10 +124,10 @@ def threshold_algo(terms, sorted_by_docs, sorted_by_scores, k, disj):
 
 ########## NAIVE ALGORITHM DISJUNCTIVE ##########
 
-def query_with_naive_disj_algo(index, query):
+def query_with_naive_disj_algo(index, query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
     """ X """
 
-    terms = set(get_terms(query))
+    terms = set(get_terms(query,remove_stopwords, case_sensitive,with_stemming))
     if index.indexed:
         if index.in_memory:
             return naive_disj_algo(index.inv_index, terms)
@@ -161,10 +161,10 @@ def naive_disj_algo(inverted_index, terms):
 
 ########## NAIVE ALGORITHM CONJUNCTIVE ##########
 
-def query_with_naive_conj_algo(index, query):
+def query_with_naive_conj_algo(index, query, remove_stopwords=False, case_sensitive=False, with_stemming=False):
     """ X """
 
-    terms = set(get_terms(query))
+    terms = set(get_terms(query, remove_stopwords, case_sensitive,with_stemming))
     if index.indexed:
         if index.in_memory:
             return naive_conj_algo(index.inv_index, terms)
@@ -214,6 +214,13 @@ def naive_conj_algo(inverted_index, terms):
 
 
 ########## PRINTING FUNCTIONS ##########
+
+def sort_and_print_pair_list(pair_list):
+        sorted_list = sorted(pair_list, key=lambda pair: pair[1], reverse=True)
+        if len(sorted_list) == 0:
+            print("Terms of query not found in document(s)")
+        for (doc,score) in sorted_list :
+            print("{0} : {1}".format(doc, str(score)))
 
 def sort_and_print_dict(dict_score):
     """ Orders by score (DESC) and prints a list of pairs {doc_id: score} """
