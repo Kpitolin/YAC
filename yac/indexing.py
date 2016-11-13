@@ -1,487 +1,383 @@
-"""This file allows you to create an Inverted Index."""
+""" This file allows you to create an Inverted Index. """
 
 import glob
 import re
+import time
+import sys
+import pickle
+import os
+from blist import sorteddict, sortedlist
+
 import tokenization
 import score
-import time
-from blist import sorteddict,sortedlist
-
-
 
 PATTERN_DOC_ID = r"<DOCID>\s(\d+)\s</DOCID>"
 PATTERN_DOC_END = r"</DOC>"
 
 
 class Index:
-	""" Example of inv_index :
-	 { "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}
-	 The inner dictionnary is structured that way : {doc_id:score} both are int for now
-	"""
 
-
-	@property
-	def current_doc_index(self):
-		return self._current_doc_index
-	@current_doc_index.setter
-	def current_doc_index(self, value):
-		self._current_doc_index = value
-
-	@property
-	def doc_limit(self):
-		return self._doc_limit
-
-	@doc_limit.setter
-	def doc_limit(self, value):
-		self._doc_limit = value
-
-	@property
-	def memory_limit(self):
-		return self._memory_limit
-	@memory_limit.setter
-	def memory_limit(self, value):
-		self._memory_limit = value
-
-
-	def __init__(self, filePathFormat = "", filterTags = False, remove_stopwords = False, case_sensitive = False, with_stemming = False):
-		self.filePathFormat = filePathFormat
-		self.filterTags = filterTags
-		self.inv_index = {}
-		self.remove_stopwords = remove_stopwords
-		self.case_sensitive = case_sensitive
-		self.with_stemming = with_stemming
-
-		self._doc_id_list = []
-		self._pl_file_list = []
-		self._current_doc_index = 0
-		self._doc_limit = 100
-		self._memory_limit = 10
-		self._doc_quantity = 0
-		self.offset = 1;
-
-		self.dict_file_term = sorteddict()
-		self.dict_term_pl = dict()
-
-		self.dictTermsOffset=dict()
-
-
-	def create_index_from_file_format_merged_based(self):
-		"""Creates the Inverted Index for a file or multiple file of the same format
-		For now, the score is just the frequency of the term in the document
-
-
-		Usage for every file starting with la (outside of this module):
-		inv_index = indexing.Index("../../../../Downloads/latimes/la*").createIndexFromFileFormat()
-
-		Usage for a file
-		inv_index = indexing.Index("../../../../Downloads/latimes/la010189").createIndexFromFileFormat()
-
-		"""
-
-		if self.filePathFormat != "":
-			#filling of the Inverted Index
-			for filename in sorted(glob.glob(self.filePathFormat)):
-				lines = open(filename, 'r')
-				self.inv_index = self.create_index_merged_based_from_text(lines)
-				self._current_doc_index = 0 # the documents are not ordered by doc id => if we don't do this we'll skip some documents
-			self.read_terms_in_file_line_dic()
-
-
-	def create_index_from_file_format_memory(self):
-		"""Creates the Inverted Index for a file or multiple file of the same format
-		For now, the score is just the frequency of the term in the document
-
-
-		Usage for every file starting with la (outside of this module):
-		inv_index = indexing.Index("../../../../Downloads/latimes/la*").createIndexFromFileFormat()
-
-		Usage for a file
-		inv_index = indexing.Index("../../../../Downloads/latimes/la010189").createIndexFromFileFormat()
-
-		"""
-
-		if self.filePathFormat != "":
-			#filling of the Inverted Index
-			for filename in sorted(glob.glob(self.filePathFormat)):
-				lines = open(filename, 'r')
-				self.inv_index = self.createIndexFromText(lines)
-
-		return self.inv_index
-
-	# We had a pb in inv_index => if you execute the function two times in a row with default parameters, inv_index has a value the second time
-	def createIndexFromText(self, text):
-		"""Creates the Inverted Index for a text
-
-		Usage
-		a = indexing.Index().createIndexFromText(textMultiline)
-		"""
-
-		doc_id = ''
-		doc = ''
-		lines = []
-
-		#textfile
-		if hasattr(text, 'readlines'):
-			lines = text
-		#multi-line string
-		elif isinstance(text,str):
-			lines = text.splitlines(False)
-
-		for line in lines:
-			doc += line
-			match = re.search(PATTERN_DOC_ID, line)
-			if match:
-				#extract the docid from the line : the first group in the regex (what's between parenthesis)
-				doc_id = int(match.group(1))
-				self._doc_id_list.append(doc_id)
-			elif re.search(PATTERN_DOC_END, line) and doc != '' and doc_id != '':
-				#if we reached the end of the document, insert tokens in hashmap and flush variables
-
-				words = tokenization.TextFile.tokenize_string_split(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
-
-				# for the time being, we just calculate the frequency of each term and put it as the score
-				# avoid ZeroDivisionError
-				if len(words) > 0:
-					score = 1.0/len(words)
-					for word in words:
-						if not word in self.inv_index:
-							self.inv_index[word] = {}
-						if not doc_id in self.inv_index[word]:
-							self.inv_index[word][doc_id] = score
-						else:
-							self.inv_index[word][doc_id] += score
-					# flush variables before passing to the next document
-					doc = ''
-					del doc_id
-
-		return self.inv_index
-
-
-	# Replaces the temporary score by the tf idf in each item of the index dictionnary
-	def calculate_all_scores_memory(self):
-
-	    for term,term_plist in self.inv_index.iteritems():
-	    	for doc_id in self.inv_index[term]:
-	    		self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
-
-	def pair_list_to_text(self,pl):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
-			docId, Score;  docId, Score;
-		"""
-		text = ""
-		for (item1, item2) in pl:
-			text = text + str(item1)+","+ str(item2)+";"
-		return text
-
-	def dict_to_text(self,pl):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
-			docId, Score;  docId, Score;
-		"""
-		text = ""
-		for item1, item2 in pl.iteritems():
-			text = text + str(item1)+","+ str(item2)+";"
-		return text
-
-	def extra_file_handler(self):
-		""" Transforms a posting list [<docId, Score>] in a text with comas and semi colons :
-			docId, Score;  docId, Score;
-		"""
-		with open('ExtraFile', "r") as f:
-			text = f.readline()
-			dictOffset ={}
-			tuple_list = text.rstrip().split(";")[:-1]
-			for index in range(len(tuple_list)):
-				pair = tuple_list[index].split(",")
-				self.dictTermsOffset[pair[0]] = int(pair[1])
-
-
-
-	def text_to_pair_list(self, text):
-		""" Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>]
-		"""
-		lines =[]
-		pair_list =[]
-		#textfile
-		if hasattr(text, 'readlines'):
-			lines = text
-		#multi-line string
-		elif isinstance(text,str):
-			lines = text.splitlines(False)
-		for line in lines:
-			pair_list = text.rstrip().split(";")[:-1]
-			for index in range(len(pair_list)):
-				pair = pair_list[index].split(",")
-				pair_list[index] = (pair[0],pair[1])
-		return pair_list
-
-	# Replaces the temporary score by the tf idf in each item of the index dictionnary that's in the query
-	def calculate_terms_in_query_scores_memory(self, query):
-
-		for term in score.get_terms(query):
-			#print list(self.inv_index.iteritems())
-			if term in self.inv_index:
-				term_plist = self.inv_index[term]
-				for doc_id in term_plist:
-					self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(term_plist), len(self._doc_id_list))
-
-
-
-	def create_index_merged_based_from_text(self, text, old_doc_id=None,old_inv_ind = None):
-		""" Creates a merged based index
-
-			We read text from the stream doc by doc until we reach docLimit or memoryLimit
-			Everytime, we update a map {term :[<docId, Score>]} the posting list [<docId, Score>] must be ordered by docId
-			Warning : the number of docs in the file must be > self._doc_limit
-		"""
-		doc_id = ''
-		doc = ''
-		lines = []
-		local_doc_id_list = []
-		#textfile
-		if hasattr(text, 'readlines'):
-			lines = text
-		#multi-line string
-		elif isinstance(text,str):
-			lines = text.splitlines(False)
-
-		nbDoc = 0
-		self.inv_index = {}
-
-		if self._doc_limit == 0:
-			return self.inv_index
-
-		for line in lines:
-			if nbDoc == self._doc_limit: # if we reached the limit of documents per file
-				self.save_index_to_file()
-				return self.create_index_merged_based_from_text(text,self._current_doc_index, self.inv_index)
-				break
-			doc = doc + '\n' + line
-			match = re.search(PATTERN_DOC_ID, line)
-
-			if match:
-				#extract the docid from the line : the first group in the regex (what's between parenthesis)
-				doc_id = int(match.group(1))
-				#if we find the same id as in the previous call, we stop
-				if doc_id == old_doc_id:
-					return old_inv_ind
-				elif doc_id >= self._current_doc_index:
-					local_doc_id_list.append(doc_id)
-					self._doc_id_list.append(doc_id)
-					self._current_doc_index = doc_id
-
-
-			elif re.search(PATTERN_DOC_END, line) and doc != '':
-
-				if len(local_doc_id_list)-nbDoc > 0:
-					#if we reached the end of the document, insert tokens in hashmap and flush variables
-					words = tokenization.TextFile.tokenize_string_split(doc, self.filterTags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
-					# for the time being, we just calculate the frequency of each term and put it as the score
-					# avoid ZeroDivisionError
-					if len(words) > 0:
-						score = 1.0/len(words)
-						for word in words:
-							if not word in self.inv_index:
-								self.inv_index[word] = [(doc_id, score)]
-							else:
-								lastDocIndex = len(self.inv_index[word]) - 1
-								(docIdTemp, scoreTemp) = self.inv_index[word][lastDocIndex]
-								if doc_id != docIdTemp:
-									self.inv_index[word].append((doc_id, score))
-								else:
-									self.inv_index[word].pop()
-									self.inv_index[word].append((docIdTemp, score + scoreTemp))
-
-					nbDoc+=1
-				# flush variables before passing to the next document
-				doc = ''
-				del doc_id
-		# if the nb of docs is not a factor of the _doc_limit, we save the rest of the docs
-		if len(local_doc_id_list) > 0 and len(local_doc_id_list) < self._doc_limit:
-			self.save_index_to_file()
-		return self.inv_index
-
-	def save_index_to_file(self):
-		""" Creates a file following this format :
-			term
-			Posting List
-			term
-			Posting List
-
-		 	and adds it to the self._pl_file_list
-		"""
-
-		file_name = "fileIndex" + str(time.clock())
-		with open(file_name,"a+") as f:
-			sortedIndex = sorted(self.inv_index)
-			for word in sortedIndex :
-				f.write(word+"\n")
-				f.write(self.pair_list_to_text(self.inv_index[word]))
-				f.write("\n")
-
-		if len(sortedIndex)>0:
-			self._pl_file_list.append(file_name)
-
-
-	def read_terms_from_i_file(self,f,ifilename):
-		pattern_term = r"-?<?/?\w+"
-		term = f.readline()
-		pl = f.readline().rstrip()
-		if len(term) != 0 and not re.match(pattern_term,term):
-			return self.read_terms_from_i_file(f,ifilename) # if we didn't find a term, we try again until end of file 
-		elif len(term) == 0 :
-			return False
-		if term not in self.dict_file_term.keys():
-			self.dict_file_term[term] =sortedlist([ifilename])
-			self.dict_term_pl[term] = [pl]
-		else:
-			(self.dict_file_term[term]).add(ifilename)
-			index_0 = (self.dict_file_term[term]).index(ifilename)
-			(self.dict_term_pl[term]).insert(index_0,pl)
-		return True
-
-	def read_terms_from_i_file_with_line_deleting(self,f,ifilename):
-		pattern_term = r"-?<?/?\w+"
-		term = f.readline()
-		pl = f.readline().rstrip()
-		if len(term) != 0 and not re.match(pattern_term,term):
-			return self.read_terms_from_i_file_with_line_deleting(f,ifilename) # if we didn't find a term, we try again until end of file 
-		elif len(term) == 0 :
-			return False
-		if term not in self.dict_file_term.keys():
-			self.dict_file_term[term] =sortedlist([ifilename])
-			self.dict_term_pl[term] = [pl]
-		else:
-			(self.dict_file_term[term]).add(ifilename)
-			index_0 = (self.dict_file_term[term]).index(ifilename)
-			(self.dict_term_pl[term]).insert(index_0,pl)
-		self.remove_lines_from_last_cursor_position(f) # we remove the two lines we just read
-		return True
-
-
-	def remove_lines_from_file_start(self,file_object,nb_lines_to_remove):
-		"""
-		In a file already open (so we can read and write), for example in r+ mode,
-	 	we want to remove the nb_lines_to_remove from """
-		file_object.seek(0) # go to beginning of file
-		data = file_object.read().splitlines(True) # save the lines of the file in list
-		file_object.seek(0) # go to beginning of file
-		if len(data) < nb_lines_to_remove:
-			file_object.write("")
-		else:
-			file_object.writelines(data[nb_lines_to_remove:]) # writes lines minus the first nb_lines_to_remove ones
-		file_object.truncate() # the file size is reduced to remove the rest
-		file_object.close()
-
-	def remove_lines_from_last_cursor_position(self,file_object):
-		"""
-		In a file already open (so we can read and write), for example in r+ mode,
-	 	we want to remove the nb_lines_to_remove from """
-		data = file_object.read().splitlines(True) # save the lines of the file in list
-		file_object.seek(0) # go to beginning of file
-		file_object.writelines(data) 
-		file_object.truncate() # the file size is reduced to remove the rest
-		file_object.close()
-
-	def read_terms_in_file(self):
-		"""It reads the ith term of each file, find the lowest term (alphabetical order)
-			and updates a data structure [filename : <term, line>] ordered by term and filename
-			Calls save_final_pl_to_file
-
-			dictFile is a data structure {filename: content} that allows us to have the state of everything open file saved (with the cursor at the last line read)
-		"""
-
-		term=''
-		dictFile = {}
-		#fileFinished=list()#
-		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-		for ifilename in self._pl_file_list :
-			dictFile[ifilename] = open(ifilename, "r+");
-			self.read_terms_from_i_file_with_line_deleting(dictFile[ifilename],ifilename)
-		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
-		while bool(self.dict_file_term):
-			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
-			pl=self.dict_term_pl[element[0]]
-			if(self.save_final_pl_to_file(element[0],pl)):
-				for ifilename in element[1]:
-					dictFile[ifilename] = open(ifilename, "r+")
-					if(self.read_terms_from_i_file_with_line_deleting(dictFile[ifilename],ifilename) == False):
-						#dictFile[ifilename].close()
-						del dictFile[ifilename]
-			else:
-				return False
-		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
-		self.save_extra_file()
-
-	def read_terms_in_file_line_dic(self):
-		"""It reads the ith term of each file, find the lowest term (alphabetical order)
-			and updates a data structure [filename : <term, line>] ordered by term and filename
-			Calls save_final_pl_to_file
-
-			dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
-		"""
-		term=''
-		dictFileLine = {}
-		# Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
-		for ifilename in self._pl_file_list :
-			with open(ifilename, "r+") as file_content:
-				self.read_terms_from_i_file(file_content,ifilename)
-				dictFileLine[ifilename] = file_content.tell()
-		# Pop the first term of the dictionary and update the dic by reading the following lines of the file
-		while bool(self.dict_file_term):
-			element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
-			pl=self.dict_term_pl[element[0]]
-			if(self.save_final_pl_to_file(element[0],pl)):
-				for ifilename in element[1]:
-					file_content = open(ifilename, "r+")
-					if ifilename in dictFileLine:
-						file_content.seek(dictFileLine[ifilename])
-					if(self.read_terms_from_i_file(file_content,ifilename) == False):
-						file_content.close()
-						del file_content
-						del dictFileLine[ifilename]
-					else:
-						dictFileLine[ifilename] = file_content.tell()
-
-			else:
-				return False
-		# After readind 100 (configurable) terms in memory ,flush them into the final inverted File
-		self.save_extra_file()
-
-	def calculate_all_term_pl_scores(self, PL):
-		"""Modify final inverted file to write final score for each doc in eah pl
-		"""
-
-		nb_docs = len(self._doc_id_list)
-		list_pls = []
-		for sring_pls in PL:
-			list_pls = list_pls + self.text_to_pair_list(sring_pls)
-		list_pls = sorted(list_pls,	key=lambda x: x[0])
-		for index in range(len(list_pls)):
-				(doc_id,scoreTemp) = map(float,list_pls[index])
-				scoreTemp *= score.inverse_document_frequency(len(list_pls), nb_docs)
-				list_pls[index] = (doc_id,scoreTemp)
-		return list_pls
-
-
-	def save_final_pl_to_file(self,term,PL):
-		"""Creates a single file for the posting lists. format :
-			PL;PL2;PL3 and so on
-		   It writes each posting list from offsetMin to offsetMax
-		   It also writes a dic {term : <offsetMin, offsetMax>}
-
-		"""
-		list_pls = self.calculate_all_term_pl_scores(PL)
-
-		with open('InvertedFile', "a+") as ifile:
-			#ifile.write(term+"\n")
-			ifile.write(self.pair_list_to_text(list_pls)+"\n")
-			self.dictTermsOffset[term.rstrip()]=self.offset
-			self.offset+=1
-		return True
-
-	def save_extra_file(self):
-		""" Saves the nb of docs to file
-		It also writes a dic {term : <offsetMin, offsetMax>}
-		"""
-		with open('ExtraFile', "w") as ifile:
-			ifile.write(self.dict_to_text(self.dictTermsOffset))
+    """ Example of inv_index :
+    { "term 1": {1:1}, "term 2": {3:1}, "term 3":{2:1, 4:1}}
+    The inner dictionnary is structured that way : {doc_id:score} both are int for now
+    """
+
+    @property
+    def memory_limit(self):
+        return self.memory_limit
+    @memory_limit.setter
+    def memory_limit(self, value):
+        self.memory_limit = value
+
+
+    def __init__(self, memory_limit = 1000000, filter_tags=False, remove_stopwords=False, case_sensitive=False, with_stemming=False):
+        self.memory_limit = memory_limit # Max size of self.inv_index in bytes, if reached it we use merge-based methode
+        self.filter_tags = filter_tags
+        self.inv_index = {} # Contains the whole index in in-memory mode
+        self.remove_stopwords = remove_stopwords
+        self.case_sensitive = case_sensitive
+        self.with_stemming = with_stemming
+        self.indexed = False
+
+        self._doc_id_list = [] # Contains the ids of the documents indexed
+        self._partial_files_names = [] # Contains the filenames of the partial index in merge-based mode
+        self.dict_terms_offset = dict() # Keep the line where each term is in InvertedFile
+        self.offset = 1;
+
+        self.dict_term_pl = sorteddict() # Used in merging
+
+
+    def index_files(self, file_path_format):
+        self.in_memory = True # True if the entire index is kept in memory, else merge-based method is used
+        for filename in glob.glob(file_path_format):
+            lines = open(filename, 'r')
+            self.index_documents(lines)
+        # No merge if all the index is in memory
+        if self.in_memory:
+            self.update_scores_with_idf()
+        else:
+            self.write_partial_index() # Write the last file
+            self.merge_partial_indexes()
+        self.indexed = True
+        return self.indexed
+
+    def index_text(self, text, in_memory = True):
+        self.in_memory = in_memory
+        self.index_documents(text)
+        # No merge if all the index is in memory
+        if self.in_memory:
+            self.update_scores_with_idf()
+        else:
+            self.write_partial_index() # Write the last file
+            self.merge_partial_indexes()
+        self.indexed = True
+        return self.indexed
+
+    # Revoir la valeur retournee
+    def use_existing_index(self):
+        """  """
+
+        if os.path.isfile("Offsets") and os.path.isfile("InvertedFile"):
+            self.in_memory = False
+            self.indexed = True
+            # Load offsets from the file where it has been previously saved
+            with open('Offsets', "r") as f:
+                self.dict_terms_offset = pickle.load(f)
+            return True
+        return False
+
+    def index_documents(self, text):
+        """ Indexes documents """
+        lines = [] # The lines of the file that is being indexed
+        if hasattr(text, 'readlines'): # Textfile
+            lines = text
+        elif isinstance(text, str): # Multi-line string
+            lines = text.splitlines(False)
+
+        doc_id = '' # The id of the doc we are actually looking at
+        doc = '' # The text already read from the doc we are looking at
+        for line in lines:
+            doc += '\n' + line
+            match = re.search(PATTERN_DOC_ID, line)
+            if match:
+                # Extraction of the doc id from the line : the first group in the regex (what's between parenthesis)
+                doc_id = int(match.group(1))
+            elif re.search(PATTERN_DOC_END, line) and doc_id != '':
+                words = tokenization.TextFile.tokenize_string_split(doc, self.filter_tags, self.remove_stopwords, self.case_sensitive, self.with_stemming)
+                # For the time being, we just calculate the frequency of each term and put it as the score
+                if len(words) > 0: # If the document has at least a term to index
+                    self._doc_id_list.append(doc_id)
+                    score = 1.0/len(words)
+                    for word in words:
+                        if word not in self.inv_index:
+                            self.inv_index[word] = {}
+                        if doc_id not in self.inv_index[word]:
+                            self.inv_index[word][doc_id] = score
+                        else:
+                            self.inv_index[word][doc_id] += score
+                    if sys.getsizeof(self.inv_index) >= self.memory_limit: # If we reached the memory limit
+                        self.write_partial_index()
+                        self.in_memory = False
+                        self.inv_index = {}
+                doc_id = ''
+                doc = ''
+
+        return self.inv_index
+
+    def update_scores_with_idf(self):
+        """ Replaces the temporary score by the tf idf in each item of the index dictionnary """
+
+        for term, pl in self.inv_index.iteritems():
+            for doc_id in self.inv_index[term]:
+                self.inv_index[term][doc_id] *= score.inverse_document_frequency(len(pl), len(self._doc_id_list))
+
+
+    def write_partial_index(self):
+        """ Creates a file following this format :
+        term
+        Posting List
+        term
+        Posting List
+
+        Then adds the filename to self._partial_files_names
+        """
+
+        filename = "partialIndex" + str(time.clock())
+        with open(filename,"a+") as f:
+            sorted_terms = sorted(self.inv_index)
+            for word in sorted_terms :
+                f.write(word+"\n")
+                f.write(self.posting_list_to_text(self.inv_index[word]))
+                f.write("\n")
+
+        if len(sorted_terms) > 0:
+            self._partial_files_names.append(filename)
+
+    def save_index(self):
+        """ X """
+
+        if self.indexed:
+            if self.in_memory:
+                with open('InvertedFile', "w") as inverted_file:
+                    for term in self.inv_index:
+                        text_pl = ""
+                        for doc_id, score in self.inv_index[term].iteritems():
+                            text_pl += str(doc_id) + "," + str(score) + ";"
+                        inverted_file.write(text_pl + "\n")
+                        self.dict_terms_offset[term.rstrip()] = self.offset
+                        self.offset += 1
+                with open('Offsets', "w") as f:
+                    pickle.dump(self.dict_terms_offset, f)
+            else:
+                print "The index has already been saved."
+        else:
+            print "Can't save index if nothing has been idexed !"
+
+
+    def merge_partial_indexes(self, nb_of_pl_to_read = 100):
+        """ "It reads the ith term of each file, find the lowest term (alphabetical order)
+        and updates a data structure [filename : <term, line>] ordered by term and filename
+        Calls save_final_pl_to_file
+
+
+        """
+        term = ''
+        offsets_in_partial_files = {}
+
+        partial_files_by_last_term_read = {}
+        # Initialization
+        for filename in self._partial_files_names:
+            last_term_read, new_offset = self.read_terms_from_partial_file(filename, 0, nb_of_pl_to_read)
+            if new_offset > 0:
+                offsets_in_partial_files[filename] = new_offset
+                if last_term_read in partial_files_by_last_term_read:
+                    partial_files_by_last_term_read[last_term_read].append(filename)
+                else:
+                    partial_files_by_last_term_read[last_term_read] = [filename]
+        # Pop the first term of the dictionary and update the dic by reading the following lines of the file
+        with open('InvertedFile', "w") as inverted_file:
+            while bool(self.dict_term_pl):
+                # Get first tem in alphabetical order and its pl
+                term, pl = self.dict_term_pl.popitem() # Returns the pair <term, pl> with the lowest key (sorteddict)
+                #print term
+                # Write the pl to InvertedFile and save the offset
+                self.write_merged_pl(term, pl, inverted_file)
+                # Need to get the following terms and their pl for the partial files which term was the last one read
+                if term in partial_files_by_last_term_read:
+                    for filename in partial_files_by_last_term_read.pop(term):
+                        last_term_read, new_offset = self.read_terms_from_partial_file(filename, offsets_in_partial_files[filename], nb_of_pl_to_read)
+                        if new_offset > 0:
+                            offsets_in_partial_files[filename] = new_offset
+                            if last_term_read in partial_files_by_last_term_read:
+                                partial_files_by_last_term_read[last_term_read].append(filename)
+                            else:
+                                partial_files_by_last_term_read[last_term_read] = [filename]
+            # Save the offsets in a file
+        with open('Offsets', "w") as f:
+            pickle.dump(self.dict_terms_offset, f)
+
+    # TODO Verefier qu on arrive bien a la fin des fichier partiels
+    def read_terms_from_partial_file(self, partial_file_name, offset, nb_of_pairs_to_handle = 1):
+        """ X """
+
+        with open(partial_file_name, "r+") as f:
+            f.seek(offset)
+
+            pattern_term = r"-?<?/?\w+" # TODO : Ca devrait etre gere par la tokenisation
+            term = ""
+            while nb_of_pairs_to_handle > 0:
+                term = f.readline()
+                pl = f.readline().rstrip()
+                if re.match(pattern_term, term):
+                    if term not in self.dict_term_pl.keys():
+                        self.dict_term_pl[term] = [pl]
+                    else:
+                        self.dict_term_pl[term].append(pl)
+                    nb_of_pairs_to_handle -= 1
+                elif len(term) == 0 :
+                    return (-1, "")
+            return (term, f.tell())
+
+    def write_merged_pl(self, term, pl, inverted_file):
+        """ Writes the complete pl of term in the file containing the final Inverted Index """
+
+        list_pls = self.calculate_all_term_pl_scores(pl)    
+        inverted_file.write(self.pair_list_to_text(list_pls)+"\n")
+        self.dict_terms_offset[term.rstrip()] = self.offset
+        self.offset += 1
+        return True
+
+    def calculate_all_term_pl_scores(self, pl):
+        """ Modify final inverted file to write final score for each doc in each pl """
+
+        list_pls = []
+        for sring_pls in pl:
+            list_pls = list_pls + self.text_to_pair_list(sring_pls)
+        list_pls = sorted(list_pls, key=lambda x: x[0])
+        for index in range(len(list_pls)):
+                (doc_id, score_temp) = map(float, list_pls[index])
+                score_temp *= score.inverse_document_frequency(len(list_pls), len(self._doc_id_list))
+                list_pls[index] = (doc_id, score_temp)
+        return list_pls
+
+    ########## CONVERTION FUNCTIONS ##########
+
+    def posting_list_to_text(self, pl):
+        """ Transforms a posting list {<doc_id, score>} in text with comas and semi colons :
+            docId, Score;  docId, Score;
+        """
+
+        text = ""
+        for key, value in pl.iteritems():
+            text = text + str(key) + "," + str(value) + ";"
+        return text
+
+    def pair_list_to_text(self, pl):
+        """ Transforms a posting list [<docId, Score>] in text with comas and semi colons :
+            docId, Score;  docId, Score;
+        """
+
+        text = ""
+        for key, value in pl:
+            text = text + str(key) + "," + str(value) + ";"
+        return text
+
+    def text_to_pair_list(self, text):
+        """ Transforms a text (docId, Score;  docId, Score;) to a posting list [<docId, Score>] """
+
+        lines = []
+        pair_list = []
+        #textfile
+        if hasattr(text, 'readlines'):
+            lines = text
+        #multi-line string
+        elif isinstance(text,str):
+            lines = text.splitlines(False)
+        for line in lines:
+            pair_list = text.rstrip().split(";")[:-1]
+            for index, item in enumerate(pair_list):
+                doc_id, score = item.split(",")
+                pair_list[index] = (doc_id, score)
+        return pair_list
+
+    ########## UNUSED FUNCTIONS ##########
+
+    def read_terms_from_i_file_with_line_deleting(self,f,ifilename):
+        pattern_term = r"-?<?/?\w+"
+        term = f.readline()
+        pl = f.readline().rstrip()
+        if len(term) != 0 and not re.match(pattern_term,term):
+            return self.read_terms_from_i_file_with_line_deleting(f,ifilename) # if we didn't find a term, we try again until end of file
+        elif len(term) == 0 :
+            return False
+        if term not in self.dict_file_term.keys():
+            self.dict_file_term[term] =sortedlist([ifilename])
+            self.dict_term_pl[term] = [pl]
+        else:
+            (self.dict_file_term[term]).add(ifilename)
+            index_0 = (self.dict_file_term[term]).index(ifilename)
+            (self.dict_term_pl[term]).insert(index_0,pl)
+        self.remove_lines_from_last_cursor_position(f) # we remove the two lines we just read
+        return True
+
+    def remove_lines_from_file_start(self,file_object,nb_lines_to_remove):
+        """
+        In a file already open (so we can read and write), for example in r+ mode,
+        we want to remove the nb_lines_to_remove from """
+        file_object.seek(0) # go to beginning of file
+        data = file_object.read().splitlines(True) # save the lines of the file in list
+        file_object.seek(0) # go to beginning of file
+        if len(data) < nb_lines_to_remove:
+            file_object.write("")
+        else:
+            file_object.writelines(data[nb_lines_to_remove:]) # writes lines minus the first nb_lines_to_remove ones
+        #print data[0:nb_lines_to_remove]
+        file_object.truncate() # the file size is reduced to remove the rest
+        file_object.close()
+
+
+    def remove_lines_from_last_cursor_position(self,file_object):
+        """
+        In a file already open (so we can read and write), for example in r+ mode,
+        we want to remove the nb_lines_to_remove from """
+        data = file_object.read().splitlines(True) # save the lines of the file in list
+        file_object.seek(0) # go to beginning of file
+        file_object.writelines(data)
+        file_object.truncate() # the file size is reduced to remove the rest
+        file_object.close()
+
+
+    def read_terms_in_file_line_dic(self):
+        """It reads the ith term of each file, find the lowest term (alphabetical order)
+            and updates a data structure [filename : <term>] ordered by term and filename
+            Calls save_final_pl_to_file
+
+            dictFileLine is a data structure {filename: line} that allows us to have the last cursor position of everything file saved
+        """
+        term=''
+        dictFileLine = {}
+        # Initialization: open all the inverted file and read the first term into the dictionary of terms sorted by key
+        for ifilename in self._pl_file_list :
+            with open(ifilename, "r+") as file_content:
+                self.read_terms_from_i_file(file_content,ifilename)
+                dictFileLine[ifilename] = file_content.tell()
+        # Pop the first term of the dictionary and update the dic by reading the following lines of the file
+        while bool(self.dict_file_term):
+            element = self.dict_file_term.popitem() # return the pair <term, [filename]> with the lowest key (sorteddict)
+            pl=self.dict_term_pl[element[0]]
+            if(self.save_final_pl_to_file(element[0],pl)):
+                for ifilename in element[1]:
+                    file_content = open(ifilename, "r+")
+                    if ifilename in dictFileLine:
+                        file_content.seek(dictFileLine[ifilename])
+                    if(self.read_terms_from_i_file(file_content,ifilename) == False):
+                        file_content.close()
+                        del file_content
+                        del dictFileLine[ifilename]
+                    else:
+                        dictFileLine[ifilename] = file_content.tell()
+
+            else:
+                return False
+        # After readind 100 (configurable) terms in memory ,flush them into the final inverted File
+        self.save_extra_file()

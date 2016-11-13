@@ -10,9 +10,8 @@ start = time.clock()
 querying.threshold_algo(querying.get_terms("soviet moscow"), 3)
 
 #index = indexing.Index("../latimes/la010189") # Object initialization
-#index.createIndexFromFileFormat() # 1 + 2
+#index.createIndexFromFileFormat() # 1 + 2 + 3
 #index.saveIndexToFile()
-#index.calculate_all_scores_memory() # 3
 #query = raw_input("Entrez votre recherche disjonctive: ")
 #print "Resutat recherche disjonctive:"
 #dicOfDocs = querying.findDocsDisj(index.inv_index, query)
